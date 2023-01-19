@@ -42,7 +42,7 @@ func TestCache_Get(t *testing.T) {
 }
 
 func TestCache_Add(t *testing.T) {
-	lru := New(int64(5000), nil)
+	lru := New(2<<10, nil)
 	lru.Add("key", String("1"))
 	lru.Add("key", String("122"))
 	if lru.nbytes != int64(len("key")+len("111")) {
@@ -67,7 +67,7 @@ func TestCache_OnEvicted(t *testing.T) {
 	callback := func(key string, value Value) {
 		keys = append(keys, key)
 	}
-	lru := New(int64(5000), callback)
+	lru := New(2<<10, callback)
 	lru.Add("key1", String("wwwwww"))
 	lru.Add("k2", String("wwwwww"))
 	lru.Add("k--3", String("wwwwww"))
