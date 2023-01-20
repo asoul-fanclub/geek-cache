@@ -56,3 +56,13 @@ func (m *Map) Get(key string) string {
 	// 如果没有找到匹配的虚拟节点，返回哈希环上的第一个节点
 	return m.hashMap[m.keys[idx%len(m.keys)]]
 }
+
+// Remove removes some node from the hash.
+func (m *Map) Remove(key string) {
+	for i := 0; i < m.replicas; i++ {
+		hash := int(m.hash([]byte(strconv.Itoa(i) + key)))
+		idx := sort.SearchInts(m.keys, hash)
+		m.keys = append(m.keys[:idx], m.keys[idx+1:]...)
+		delete(m.hashMap, hash)
+	}
+}

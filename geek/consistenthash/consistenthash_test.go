@@ -16,6 +16,8 @@ func TestMap_Get(t *testing.T) {
 		"2":  "2", // 02 - 2
 		"11": "2", // 12 - 2
 		"23": "4", // 24 - 4
+		"26": "6", // 24 - 4
+		"24": "4", // 24 - 4
 		"27": "2", // 02 - 2
 	}
 	for k, v := range testCases {
@@ -23,8 +25,17 @@ func TestMap_Get(t *testing.T) {
 			t.Errorf("hash.Get(%s) expeted %s, but %s", k, v, hash.Get(k))
 		}
 	}
+	// add vir-node 08, 18, 28
 	hash.Add("8")
 	testCases["27"] = "8" // 28 - 8
+	for k, v := range testCases {
+		if hash.Get(k) != v {
+			t.Errorf("hash.Get(%s) expeted %s, but %s", k, v, hash.Get(k))
+		}
+	}
+	// remove vir-node 08, 18, 28
+	hash.Remove("8")
+	testCases["27"] = "2" // 02 - 2
 	for k, v := range testCases {
 		if hash.Get(k) != v {
 			t.Errorf("hash.Get(%s) expeted %s, but %s", k, v, hash.Get(k))
