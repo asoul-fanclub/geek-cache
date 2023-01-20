@@ -17,6 +17,8 @@ type Group struct {
 	mainCache cache
 }
 
+// NewGroup 新创建一个Group
+// 如果存在同名的group会进行覆盖
 func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	if getter == nil {
 		panic("nil Getter")
