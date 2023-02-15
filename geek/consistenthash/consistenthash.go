@@ -1,5 +1,10 @@
 package consistenthash
 
+// consistenthash solves the problems of:
+// 1. how to route the key to the cached node.
+// 2. lots of space for caching the same key.
+// 3. rehashing when the node is changed.
+
 import (
 	"hash/crc32"
 	"sort"
