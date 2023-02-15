@@ -2,6 +2,7 @@ package geek
 
 import (
 	"fmt"
+	"geek-cache/singleflight"
 	"log"
 	"sync"
 )
@@ -12,10 +13,11 @@ var (
 )
 
 type Group struct {
-	name      string     // group name
-	getter    Getter     // 缓存未名中时的callback
-	mainCache cache      // main cache
-	peers     PeerPicker // pick function
+	name      string              // group name
+	getter    Getter              // 缓存未名中时的callback
+	mainCache cache               // main cache
+	peers     PeerPicker          // pick function
+	loader    *singleflight.Group // make sure that each key is only fetched once
 }
 
 func (g *Group) RegisterPeers(peers PeerPicker) {
@@ -37,6 +39,7 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		name:      name,
 		getter:    getter,
 		mainCache: cache{cacheBytes: cacheBytes},
+		loader:    &singleflight.Group{},
 	}
 	groups[name] = g
 	return g
@@ -63,16 +66,24 @@ func (g *Group) Get(key string) (ByteView, error) {
 
 // get from peer first, then get locally
 func (g *Group) load(key string) (ByteView, error) {
-	if g.peers != nil {
-		if peer, ok := g.peers.PickPeer(key); ok {
-			if value, err := g.getFromPeer(peer, key); err == nil {
-				return value, nil
-			} else {
-				log.Println("[GeekCache] Failed to get from peer", err)
+	// make sure requests for the key only execute once
+	v, err := g.loader.Do(key, func() (interface{}, error) {
+		if g.peers != nil {
+			if peer, ok := g.peers.PickPeer(key); ok {
+				if value, err := g.getFromPeer(peer, key); err == nil {
+					return value, nil
+				} else {
+					log.Println("[GeekCache] Failed to get from peer", err)
+				}
 			}
 		}
+		return g.getLocally(key)
+	})
+
+	if err == nil {
+		return v.(ByteView), nil
 	}
-	return g.getLocally(key)
+	return ByteView{}, err
 }
 
 func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
