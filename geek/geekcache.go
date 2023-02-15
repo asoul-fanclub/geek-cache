@@ -122,3 +122,13 @@ type GetterFunc func(key string) ([]byte, error)
 func (f GetterFunc) Get(key string) ([]byte, error) {
 	return f(key)
 }
+
+func DestroyGroup(name string) {
+	g := GetGroup(name)
+	if g != nil {
+		svr := g.peers.(*Server)
+		svr.Stop()
+		delete(groups, name)
+		log.Printf("Destroy cache [%s %s]", name, svr.self)
+	}
+}

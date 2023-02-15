@@ -7,9 +7,13 @@ import (
 	pb "geek-cache/geek/pb"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
+
+	"google.golang.org/grpc"
 )
 
 const (
@@ -20,11 +24,13 @@ const (
 
 type Server struct {
 	pb.UnimplementedGroupCacheServer
-	self        string                 // self ip
-	basePath    string                 // prefix path for communicating
-	mu          sync.Mutex             // guards
-	peers       *consistenthash.Map    // stores the list of peers, selected by specific key
-	clients map[string]*httpGetter // keyed by e.g. "http://10.0.0.2:8009"
+	self       string                 // self ip
+	basePath   string                 // prefix path for communicating
+	status     bool                   // true if the server is running
+	mu         sync.Mutex             // guards
+	peers      *consistenthash.Map    // stores the list of peers, selected by specific key
+	clients    map[string]*httpGetter // keyed by e.g. "http://10.0.0.2:8009"
+	stopSignal chan error             // signal to stop
 }
 
 func NewServer(self string) (*Server, error) {
@@ -64,6 +70,29 @@ func (s *Server) Get(ctx context.Context, in *pb.Request) (*pb.Response, error) 
 	return out, nil
 }
 
+func (s *Server) Start() error {
+	s.mu.Lock()
+	if s.status {
+		s.mu.Unlock()
+		return fmt.Errorf("server already running")
+	}
+	s.status = true
+	s.stopSignal = make(chan error)
+
+	port := strings.Split(s.self, ":")[1]
+	l, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %v", port, err)
+	}
+	grpcServer := grpc.NewServer()
+	pb.RegisterGroupCacheServer(grpcServer, s)
+	s.mu.Unlock()
+	if err := grpcServer.Serve(l); s.status && err != nil {
+		return fmt.Errorf("failed to serve on %s: %v", port, err)
+	}
+	return nil
+}
+
 // add peer to cluster, create the httpGetter function for every peer
 func (s *Server) Set(peers ...string) {
 	s.mu.Lock()
@@ -76,6 +105,19 @@ func (s *Server) Set(peers ...string) {
 			baseURL: peer + s.basePath,
 		}
 	}
+}
+
+func (s *Server) Stop() {
+	s.mu.Lock()
+	if !s.status {
+		s.mu.Unlock()
+		return
+	}
+	s.stopSignal <- nil
+	s.status = false
+	s.clients = nil
+	s.peers = nil
+	s.mu.Unlock()
 }
 
 // -------------Client---------------
