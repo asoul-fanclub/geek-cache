@@ -35,7 +35,7 @@ func TestHTTP(t *testing.T) {
 			return nil, fmt.Errorf("%s not found", key)
 		}))
 	addr := "localhost:8080"
-	peers := NewHTTPPool(addr)
+	peers, _ := NewServer(addr)
 	log.Println("geek-cache is running at", addr)
 	peers.ServeHTTP(w, req1)
 	bytes, _ := io.ReadAll(w.Result().Body)

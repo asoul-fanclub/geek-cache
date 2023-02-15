@@ -26,7 +26,7 @@ func createGroup() *geek.Group {
 }
 
 func startCacheServer(addr string, addrs []string, gee *geek.Group) {
-	peers := geek.NewHTTPPool(addr)
+	peers, _ := geek.NewServer(addr)
 	peers.Set(addrs...)
 	gee.RegisterPeers(peers)
 	log.Println("geek-cache is running at", addr)
