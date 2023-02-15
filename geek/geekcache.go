@@ -2,7 +2,7 @@ package geek
 
 import (
 	"fmt"
-	"geek-cache/singleflight"
+	"geek-cache/geek/singleflight"
 	"log"
 	"sync"
 )
