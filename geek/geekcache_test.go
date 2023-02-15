@@ -23,11 +23,12 @@ func TestGroup_Get(t *testing.T) {
 			return nil, fmt.Errorf("%v not exist", key)
 		}),
 	)
-	gee = GetGroup("scores")
-	_, err := gee.Get("")
+	gee1 := GetGroup("scores")
+	_, err := gee1.Get("")
 	if err == nil {
 		t.Fatalf("Get params is empty, excepted not nil error, but nil")
 	}
+
 	for k, v := range db {
 		if view, err := gee.Get(k); err != nil || view.String() != v {
 			t.Fatalf("expected err is nil and value is %v, but err is %v, value is %v", v, err, view.String())
