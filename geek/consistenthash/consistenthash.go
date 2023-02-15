@@ -20,6 +20,7 @@ type Map struct {
 	hashMap  map[int]string // 虚拟节点与真实节点的映射表（key是虚拟节点hash, value is the name of reality node）
 }
 
+// New with the replicas number and hash function
 func New(replicas int, fn Hash) *Map {
 	m := &Map{
 		hash:     fn,
