@@ -61,11 +61,6 @@ func (c *Cache) RemoveOldest() {
 // Add 添加或删除缓存
 // 此处是先加后删。如果加入一个较大值会OOM
 func (c *Cache) Add(key string, value Value) {
-	// 避免超大值直接造成OOM，TODO：这里需不需要将限制扩大、需不需要将缓存清空？
-	d := int64(len(key) + value.Len())
-	if d > c.maxBytes {
-		return
-	}
 	if v, ok := c.cache[key]; ok {
 		c.ll.MoveToBack(v)
 		kv := v.Value.(*entry)
