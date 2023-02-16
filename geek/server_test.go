@@ -9,17 +9,17 @@ import (
 	"time"
 )
 
-var http_test_db = map[string]string{
+var server_test_db = map[string]string{
 	"Tom":  "630",
 	"Tom2": "631",
 	"Tom3": "632",
 }
 
-func TestHTTP(t *testing.T) {
+func TestServer(t *testing.T) {
 	g := NewGroup("scores", 2<<10, GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
-			if v, ok := http_test_db[key]; ok {
+			if v, ok := server_test_db[key]; ok {
 				return []byte(v), nil
 			}
 			return nil, fmt.Errorf("%s not found", key)
@@ -50,5 +50,10 @@ func TestHTTP(t *testing.T) {
 	if !reflect.DeepEqual(view.String(), "630") {
 		t.Errorf("Tom %s(actual)/%s(ok)", view.String(), "630")
 	}
+	view, err = g.Get("Unknown")
+	if err == nil || view.String() != "" {
+		t.Errorf("Unknown not exists, but got %s", view.String())
+	}
+
 	DestroyGroup(g.name)
 }
