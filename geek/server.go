@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"geek-cache/geek/consistenthash"
 	pb "geek-cache/geek/pb"
-	"io"
 	"log"
 	"net"
-	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 
@@ -24,13 +21,13 @@ const (
 
 type Server struct {
 	pb.UnimplementedGroupCacheServer
-	self       string                 // self ip
-	basePath   string                 // prefix path for communicating
-	status     bool                   // true if the server is running
-	mu         sync.Mutex             // guards
-	peers      *consistenthash.Map    // stores the list of peers, selected by specific key
-	clients    map[string]*httpGetter // keyed by e.g. "http://10.0.0.2:8009"
-	stopSignal chan error             // signal to stop
+	self       string              // self ip
+	basePath   string              // prefix path for communicating
+	status     bool                // true if the server is running
+	mu         sync.Mutex          // guards
+	consHash   *consistenthash.Map // stores the list of peers, selected by specific key
+	clients    map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
+	stopSignal chan error          // signal to stop
 }
 
 func NewServer(self string) (*Server, error) {
@@ -41,7 +38,6 @@ func NewServer(self string) (*Server, error) {
 	}
 	return &Server{
 		self:     self,
-		basePath: defaultBasePath,
 	}, nil
 }
 
@@ -97,12 +93,12 @@ func (s *Server) Start() error {
 func (s *Server) Set(peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.peers = consistenthash.New(defaultReplicas, nil)
-	s.peers.Add(peers...)
-	s.clients = make(map[string]*httpGetter, len(peers))
+	s.consHash = consistenthash.New(defaultReplicas, nil)
+	s.consHash.Add(peers...)
+	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
-		s.clients[peer] = &httpGetter{
-			baseURL: peer + s.basePath,
+		s.clients[peer] = &Client{
+			name: peer,
 		}
 	}
 }
@@ -116,53 +112,20 @@ func (s *Server) Stop() {
 	s.stopSignal <- nil
 	s.status = false
 	s.clients = nil
-	s.peers = nil
+	s.consHash = nil
 	s.mu.Unlock()
 }
 
-// -------------Client---------------
-
-type httpGetter struct {
-	baseURL string // the base URL of remote server
-}
-
-// resure implemented
-var _ PeerGetter = (*httpGetter)(nil)
-
-// Get send the url for getting specific group and key,
-// and return the result
-func (h *httpGetter) Get(group, key string) ([]byte, error) {
-	u := fmt.Sprintf(
-		"%v%v/%v",
-		h.baseURL,
-		url.QueryEscape(group),
-		url.QueryEscape(key))
-	res, err := http.Get(u)
-	if err != nil {
-		return nil, err
+// PickPeer pick a peer with the consistenthash algorithm
+func (s *Server) PickPeer(key string) (PeerGetter, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if peer := s.consHash.Get(key); peer != "" && peer != s.self {
+		s.Log("Pick peer %s", peer)
+		return s.clients[peer], true
 	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("server returned: %v", res.Status)
-	}
-	bytes, err := io.ReadAll(res.Body)
-	if err != nil {
-		return nil, fmt.Errorf("reading response body: %v", err)
-	}
-	return bytes, nil
+	return nil, false
 }
 
 // resure implemented
 var _ PeerPicker = (*Server)(nil)
-
-// PickPeer pick a peer with the consistenthash algorithm
-func (p *Server) PickPeer(key string) (PeerGetter, bool) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if peer := p.peers.Get(key); peer != "" && peer != p.self {
-		p.Log("Pick peer %s", peer)
-		return p.clients[peer], true
-	}
-	return nil, false
-}
