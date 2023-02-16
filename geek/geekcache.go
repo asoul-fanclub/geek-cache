@@ -66,7 +66,7 @@ func (g *Group) Get(key string) (ByteView, error) {
 
 // get from peer first, then get locally
 func (g *Group) load(key string) (ByteView, error) {
-	// make sure requests for the key only execute once
+	// make sure requests for the key only execute once in concurrent condition
 	v, err := g.loader.Do(key, func() (interface{}, error) {
 		if g.peers != nil {
 			if peer, ok := g.peers.PickPeer(key); ok {
@@ -92,7 +92,7 @@ func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 		return ByteView{}, err
 	}
 	return ByteView{
-		b: bytes,
+		b: cloneBytes(bytes),
 	}, nil
 }
 

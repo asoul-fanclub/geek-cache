@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"geek-cache/geek/consistenthash"
 	pb "geek-cache/geek/pb"
+	registy "geek-cache/geek/registry"
 	"log"
 	"net"
 	"strings"
@@ -37,7 +38,7 @@ func NewServer(self string) (*Server, error) {
 		return nil, fmt.Errorf("invalid address: %v", self)
 	}
 	return &Server{
-		self:     self,
+		self: self,
 	}, nil
 }
 
@@ -82,6 +83,19 @@ func (s *Server) Start() error {
 	}
 	grpcServer := grpc.NewServer()
 	pb.RegisterGroupCacheServer(grpcServer, s)
+	go func() {
+		err := registy.Register("geek-cache", s.self, s.stopSignal)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		close(s.stopSignal)
+		err = l.Close()
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		log.Printf("[%s] Revoke service and close tcp socket ok", s.self)
+	}()
+
 	s.mu.Unlock()
 	if err := grpcServer.Serve(l); s.status && err != nil {
 		return fmt.Errorf("failed to serve on %s: %v", port, err)
