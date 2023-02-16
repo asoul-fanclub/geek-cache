@@ -12,7 +12,7 @@ import (
 
 var (
 	DefaultEtcdConfig = clientv3.Config{
-		Endpoints:   []string{"localhost:12379"},
+		Endpoints:   []string{"localhost:2379"},
 		DialTimeout: 5 * time.Second,
 	}
 )
@@ -34,7 +34,7 @@ func Register(service, addr string, stop chan error) error {
 		return fmt.Errorf("create etcd client failed: %v", err)
 	}
 	defer cli.Close()
-	// create a lease in 5 seconds
+	// create a lease for 5 seconds
 	resp, err := cli.Grant(context.Background(), 5)
 	if err != nil {
 		return fmt.Errorf("create lease failed: %v", err)

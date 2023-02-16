@@ -12,12 +12,13 @@ import (
 	"sync"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 const (
 	defaultBasePath = "/_geek_cache/"
 	defaultAddr     = "127.0.0.1:7654"
-	defaultReplicas = 50
+	defaultReplicas = 1
 )
 
 type Server struct {
@@ -39,6 +40,10 @@ func NewServer(self string) (*Server, error) {
 	return &Server{
 		self: self,
 	}, nil
+}
+
+func (s *Server) Self() string {
+	return s.self
 }
 
 // Log info
@@ -82,6 +87,8 @@ func (s *Server) Start() error {
 	}
 	grpcServer := grpc.NewServer()
 	pb.RegisterGroupCacheServer(grpcServer, s)
+	// 启动 reflection 反射服务
+	reflection.Register(grpcServer)
 	go func() {
 		err := registy.Register("geek-cache", s.self, s.stopSignal)
 		if err != nil {
@@ -110,9 +117,7 @@ func (s *Server) Set(peers ...string) {
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
-		s.clients[peer] = &Client{
-			name: peer,
-		}
+		s.clients[peer], _ = NewClient(peer)
 	}
 }
 

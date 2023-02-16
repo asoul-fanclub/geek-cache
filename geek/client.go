@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pb "geek-cache/geek/pb"
 	registry "geek-cache/geek/registry"
+	"log"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -25,18 +26,20 @@ func (c *Client) Get(group, key string) ([]byte, error) {
 	cli, err := clientv3.New(registry.DefaultEtcdConfig)
 
 	if err != nil {
+		log.Fatal(err)
 		return nil, err
 	}
 	defer cli.Close()
 
 	conn, err := registry.EtcdDial(cli, c.name)
+	// conn, err := grpc.Dial(c.name, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
 	defer conn.Close()
 
 	grpcCLient := pb.NewGroupCacheClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
 	resp, err := grpcCLient.Get(ctx, &pb.Request{

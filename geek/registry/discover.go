@@ -14,7 +14,7 @@ func EtcdDial(c *clientv3.Client, service string) (*grpc.ClientConn, error) {
 		return nil, err
 	}
 	return grpc.Dial(
-		"etcd:///"+service,
+		service,
 		grpc.WithResolvers(etcdResolver),
 		grpc.WithInsecure(),
 		grpc.WithBlock(),

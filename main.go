@@ -1,14 +1,16 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"geek-cache/geek"
 	"log"
-	"sync"
 )
 
 func main() {
-
+	var port int
+	flag.IntVar(&port, "port", 8001, "Geecache server port")
+	flag.Parse()
 	var mysql = map[string]string{
 		"Tom":  "630",
 		"Tom1": "631",
@@ -22,38 +24,30 @@ func main() {
 			}
 			return nil, fmt.Errorf("%s not found", key)
 		}))
-	var addr string = "localhost:9999"
+
+	addrMap := map[int]string{
+		8001: "8001",
+		8002: "8002",
+		8003: "8003",
+	}
+	var addr string = "127.0.0.1:" + addrMap[port]
+
 	server, err := geek.NewServer(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
-	server.Set(addr)
-	g.RegisterPeers(server)
-	log.Println("geek-cache is running at", addr)
 
-	go func() {
+	addrs := make([]string, 0)
+	for _, addr := range addrMap {
+		addrs = append(addrs, "127.0.0.1:"+addr)
+	}
+	server.Set(addrs...)
+	g.RegisterPeers(server)
+	for {
 		err = server.Start()
 		if err != nil {
-			log.Fatal(err)
+			log.Println(err.Error())
+			return
 		}
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(4)
-	go GetTomScore(g, &wg)
-	go GetTomScore(g, &wg)
-	go GetTomScore(g, &wg)
-	go GetTomScore(g, &wg)
-
-}
-
-func GetTomScore(g *geek.Group, wg *sync.WaitGroup) {
-	defer wg.Done()
-	log.Println("get Tom...")
-	view, err := g.Get("Tom")
-	if err != nil {
-		fmt.Println(err.Error())
-		return
 	}
-	fmt.Println(view.String())
 }
