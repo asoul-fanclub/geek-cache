@@ -23,7 +23,6 @@ const (
 type Server struct {
 	pb.UnimplementedGroupCacheServer
 	self       string              // self ip
-	basePath   string              // prefix path for communicating
 	status     bool                // true if the server is running
 	mu         sync.Mutex          // guards
 	consHash   *consistenthash.Map // stores the list of peers, selected by specific key
