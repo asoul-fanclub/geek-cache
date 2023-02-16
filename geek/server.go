@@ -18,7 +18,7 @@ import (
 const (
 	defaultBasePath = "/_geek_cache/"
 	defaultAddr     = "127.0.0.1:7654"
-	defaultReplicas = 1
+	defaultReplicas = 150
 )
 
 type Server struct {
