@@ -121,6 +121,17 @@ func (s *Server) Set(peers ...string) {
 	}
 }
 
+func (s *Server) SetWithReplicas(replicas int, peers ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.consHash = consistenthash.New(replicas, nil)
+	s.consHash.Add(peers...)
+	s.clients = make(map[string]*Client, len(peers))
+	for _, peer := range peers {
+		s.clients[peer], _ = NewClient(peer)
+	}
+}
+
 func (s *Server) Stop() {
 	s.mu.Lock()
 	if !s.status {
