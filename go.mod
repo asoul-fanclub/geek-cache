@@ -1,4 +1,4 @@
-module geek-cache
+module github.com/Makonike/geek-cache
 
 go 1.19
 

@@ -2,9 +2,19 @@
 
 a distributed read-only cache, based [groupcache](https://github.com/golang/groupcache), using etcd as a registry, supports efficient concurrent reading.
 
+## Install
+
+The package supports 3 last Go versions and requires a Go version with modules support.
+
+`go get github.com/Makonike/geek-cache`
+
 ## Usage
 
 Be sure to install **etcd v3**(port 2379), grpcurl(for your tests), protobuf v3.
+
+
+
+## Test
 
 Write the following code for testing.
 
@@ -16,19 +26,25 @@ package main
 import (
 	"flag"
 	"fmt"
-	"geek-cache/geek"
 	"log"
+
+	"github.com/Makonike/geek-cache/geek"
 )
 
 func main() {
 	var port int
 	flag.IntVar(&port, "port", 8001, "Geecache server port")
 	flag.Parse()
+
+	// mock database or other dataSource
 	var mysql = map[string]string{
 		"Tom":  "630",
 		"Tom1": "631",
 		"Tom2": "632",
 	}
+
+	// NewGroup create a Group which means a kind of sources
+	// contain a func that used when misses cache
 	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
@@ -64,6 +80,7 @@ func main() {
 		}
 	}
 }
+
 
 ```
 

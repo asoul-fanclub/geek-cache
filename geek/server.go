@@ -3,13 +3,15 @@ package geek
 import (
 	"context"
 	"fmt"
-	"geek-cache/geek/consistenthash"
-	pb "geek-cache/geek/pb"
-	registy "geek-cache/geek/registry"
 	"log"
 	"net"
 	"strings"
 	"sync"
+
+	pb "github.com/Makonike/geek-cache/geek/pb"
+	registy "github.com/Makonike/geek-cache/geek/registry"
+
+	"github.com/Makonike/geek-cache/geek/consistenthash"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"

@@ -2,9 +2,10 @@ package geek
 
 import (
 	"fmt"
-	"geek-cache/geek/singleflight"
 	"log"
 	"sync"
+
+	"github.com/Makonike/geek-cache/geek/singleflight"
 )
 
 var (

@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
-	"geek-cache/geek"
 	"log"
+
+	"github.com/Makonike/geek-cache/geek"
 )
 
 func main() {
@@ -41,6 +42,9 @@ func main() {
 	for _, addr := range addrMap {
 		addrs = append(addrs, "127.0.0.1:"+addr)
 	}
+
+	// set client address
+	// TODO: will be substituted with etcd service discovery
 	server.Set(addrs...)
 	g.RegisterPeers(server)
 	for {

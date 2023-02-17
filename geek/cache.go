@@ -1,8 +1,9 @@
 package geek
 
 import (
-	"geek-cache/geek/lru"
 	"sync"
+
+	"github.com/Makonike/geek-cache/geek/lru"
 )
 
 // cache 解决并发控制，实例化lru，封装get和add。

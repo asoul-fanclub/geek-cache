@@ -3,10 +3,11 @@ package geek
 import (
 	"context"
 	"fmt"
-	pb "geek-cache/geek/pb"
-	registry "geek-cache/geek/registry"
 	"log"
 	"time"
+
+	pb "github.com/Makonike/geek-cache/geek/pb"
+	registry "github.com/Makonike/geek-cache/geek/registry"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
