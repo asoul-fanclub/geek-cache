@@ -1,4 +1,4 @@
-package registy
+package registry
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	DefaultEtcdConfig = clientv3.Config{
+	defaultEtcdConfig = &clientv3.Config{
 		Endpoints:   []string{"localhost:2379"},
 		DialTimeout: 5 * time.Second,
 	}
@@ -29,7 +29,7 @@ func etcdAdd(c *clientv3.Client, lid clientv3.LeaseID, service, addr string) err
 // Register register a service to etcd
 // no return if not error
 func Register(service, addr string, stop chan error) error {
-	cli, err := clientv3.New(DefaultEtcdConfig)
+	cli, err := clientv3.New(*GlobalClientConfig)
 	if err != nil {
 		return fmt.Errorf("create etcd client failed: %v", err)
 	}

@@ -8,7 +8,6 @@ import (
 
 	pb "github.com/Makonike/geek-cache/geek/pb"
 	registry "github.com/Makonike/geek-cache/geek/registry"
-
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
@@ -24,7 +23,7 @@ func NewClient(name string) (*Client, error) {
 // Get send the url for getting specific group and key,
 // and return the result
 func (c *Client) Get(group, key string) ([]byte, error) {
-	cli, err := clientv3.New(registry.DefaultEtcdConfig)
+	cli, err := clientv3.New(*registry.GlobalClientConfig)
 
 	if err != nil {
 		log.Fatal(err)

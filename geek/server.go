@@ -111,7 +111,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// add peer to cluster, create the httpGetter function for every peer
+// add peer to cluster, create a new Client instance for every peer
 func (s *Server) Set(peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
