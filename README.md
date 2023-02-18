@@ -140,38 +140,38 @@ Running the shell, then you can see the results following.
   "value": "NjMy"
 }
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/17 11:14:27 [GeekCache] hit
+2023/02/17 11:14:27 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom1)
 2023/02/17 11:14:27 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/17 11:14:27 [GeekCache] hit
+2023/02/17 11:14:27 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom2)
 2023/02/17 11:14:27 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/17 11:14:27 [GeekCache] hit
+2023/02/17 11:14:27 [Geek-Cache] hit
 {
   "value": "NjMy"
 }
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
 2023/02/17 11:14:27 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8002
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/17 11:14:27 [GeekCache] hit
+2023/02/17 11:14:27 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/17 11:14:27 [GeekCache] hit
+2023/02/17 11:14:27 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
 2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/17 11:14:27 [GeekCache] hit
+2023/02/17 11:14:27 [Geek-Cache] hit
 {
   "value": "NjMy"
 }

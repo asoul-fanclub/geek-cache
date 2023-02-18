@@ -59,7 +59,7 @@ func (g *Group) Get(key string) (ByteView, error) {
 	}
 
 	if v, ok := g.mainCache.get(key); ok {
-		log.Println("[GeekCache] hit")
+		log.Println("[Geek-Cache] hit")
 		return v, nil
 	}
 	return g.load(key)
@@ -74,7 +74,7 @@ func (g *Group) load(key string) (ByteView, error) {
 				if value, err := g.getFromPeer(peer, key); err == nil {
 					return value, nil
 				} else {
-					log.Println("[GeekCache] Failed to get from peer", err)
+					log.Println("[Geek-Cache] Failed to get from peer", err)
 				}
 			}
 		}

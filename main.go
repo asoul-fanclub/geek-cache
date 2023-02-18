@@ -43,7 +43,7 @@ func main() {
 		addrs = append(addrs, "127.0.0.1:"+addr)
 	}
 
-	// 添加picker到geekcache中
+	// 添加picker到geek-cache中
 	// set client address
 	// TODO: will be substituted with etcd service discovery
 	picker := geek.NewClientPicker()
