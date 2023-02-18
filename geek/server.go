@@ -11,8 +11,6 @@ import (
 	pb "github.com/Makonike/geek-cache/geek/pb"
 	registy "github.com/Makonike/geek-cache/geek/registry"
 
-	"github.com/Makonike/geek-cache/geek/consistenthash"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -25,12 +23,10 @@ const (
 
 type Server struct {
 	pb.UnimplementedGroupCacheServer
-	self       string              // self ip
-	status     bool                // true if the server is running
-	mu         sync.Mutex          // guards
-	consHash   *consistenthash.Map // stores the list of peers, selected by specific key
-	clients    map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
-	stopSignal chan error          // signal to stop
+	self       string     // self ip
+	status     bool       // true if the server is running
+	mu         sync.Mutex // guards
+	stopSignal chan error // signal to stop
 }
 
 func NewServer(self string) (*Server, error) {
@@ -111,29 +107,6 @@ func (s *Server) Start() error {
 	return nil
 }
 
-// add peer to cluster, create a new Client instance for every peer
-func (s *Server) Set(peers ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(defaultReplicas, nil)
-	s.consHash.Add(peers...)
-	s.clients = make(map[string]*Client, len(peers))
-	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer)
-	}
-}
-
-func (s *Server) SetWithReplicas(replicas int, peers ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(replicas, nil)
-	s.consHash.Add(peers...)
-	s.clients = make(map[string]*Client, len(peers))
-	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer)
-	}
-}
-
 func (s *Server) Stop() {
 	s.mu.Lock()
 	if !s.status {
@@ -142,21 +115,5 @@ func (s *Server) Stop() {
 	}
 	s.stopSignal <- nil
 	s.status = false
-	s.clients = nil
-	s.consHash = nil
 	s.mu.Unlock()
 }
-
-// PickPeer pick a peer with the consistenthash algorithm
-func (s *Server) PickPeer(key string) (PeerGetter, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if peer := s.consHash.Get(key); peer != "" && peer != s.self {
-		s.Log("Pick peer %s", peer)
-		return s.clients[peer], true
-	}
-	return nil, false
-}
-
-// resure implemented
-var _ PeerPicker = (*Server)(nil)
