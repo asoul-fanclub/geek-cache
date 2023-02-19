@@ -25,7 +25,9 @@ type ClientPicker struct {
 }
 
 func NewClientPicker(self string) *ClientPicker {
-	return &ClientPicker{}
+	return &ClientPicker{
+		self: self,
+	}
 }
 
 // add peer to cluster, create a new Client instance for every peer
