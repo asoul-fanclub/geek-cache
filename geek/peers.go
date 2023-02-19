@@ -2,9 +2,10 @@ package geek
 
 import (
 	"fmt"
-	"github.com/Makonike/geek-cache/geek/consistenthash"
 	"log"
 	"sync"
+
+	"github.com/Makonike/geek-cache/geek/consistenthash"
 )
 
 // PeerPicker must be implemented to locate the peer that owns a specific key
@@ -34,7 +35,7 @@ func NewClientPicker(self string) *ClientPicker {
 func (s *ClientPicker) Set(peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(defaultReplicas, nil)
+	s.consHash = consistenthash.New(GlobalReplicas, nil)
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
@@ -56,12 +57,32 @@ func (s *ClientPicker) PickPeer(key string) (PeerGetter, bool) {
 func (s *ClientPicker) SetWithReplicas(replicas int, peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(replicas, nil)
+	if s.consHash == nil {
+		s.consHash = consistenthash.New(replicas, nil)
+	}
 	s.consHash.Add(peers...)
-	s.clients = make(map[string]*Client, len(peers))
+	if s.clients == nil {
+		s.clients = make(map[string]*Client, len(peers))
+	}
 	for _, peer := range peers {
 		s.clients[peer], _ = NewClient(peer)
 	}
+}
+
+func (s *ClientPicker) SetSinglePeer(replicas int, peer string) {
+	if replicas < 1 {
+		replicas = GlobalReplicas
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.consHash == nil {
+		s.consHash = consistenthash.New(replicas, nil)
+	}
+	s.consHash.Add(peer)
+	if s.clients == nil {
+		s.clients = make(map[string]*Client, 1)
+	}
+	s.clients[peer], _ = NewClient(peer)
 }
 
 // Log info

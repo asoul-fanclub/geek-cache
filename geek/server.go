@@ -15,8 +15,11 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+var (
+	GlobalReplicas = defaultReplicas
+)
+
 const (
-	defaultBasePath = "/_geek_cache/"
 	defaultAddr     = "127.0.0.1:7654"
 	defaultReplicas = 150
 )
