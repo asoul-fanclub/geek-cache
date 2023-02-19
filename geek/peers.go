@@ -35,7 +35,19 @@ func NewClientPicker(self string) *ClientPicker {
 func (s *ClientPicker) Set(hash consistenthash.Hash, peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(consistenthash.GlobalReplicas, hash)
+	s.consHash = consistenthash.New()
+	s.consHash = consistenthash.New(consistenthash.HashFunc(hash))
+	s.consHash.Add(peers...)
+	s.clients = make(map[string]*Client, len(peers))
+	for _, peer := range peers {
+		s.clients[peer], _ = NewClient(peer)
+	}
+}
+
+func (s *ClientPicker) SetSimply(peers ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.consHash = consistenthash.New()
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
@@ -58,7 +70,7 @@ func (s *ClientPicker) SetWithReplicas(hash consistenthash.Hash, replicas int, p
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.consHash == nil {
-		s.consHash = consistenthash.New(replicas, hash)
+		s.consHash = consistenthash.New(consistenthash.Replicas(replicas), consistenthash.HashFunc(hash))
 	}
 	s.consHash.Add(peers...)
 	if s.clients == nil {
@@ -73,7 +85,7 @@ func (s *ClientPicker) SetSinglePeer(hash consistenthash.Hash, replicas int, pee
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.consHash == nil {
-		s.consHash = consistenthash.New(replicas, hash)
+		s.consHash = consistenthash.New(consistenthash.Replicas(replicas), consistenthash.HashFunc(hash))
 	}
 	s.consHash.Add(peer)
 	if s.clients == nil {

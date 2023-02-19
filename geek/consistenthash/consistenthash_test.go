@@ -6,10 +6,10 @@ import (
 )
 
 func TestMap_Get(t *testing.T) {
-	hash := New(3, func(data []byte) uint32 {
+	hash := New(Replicas(3), HashFunc(func(data []byte) uint32 {
 		i, _ := strconv.Atoi(string(data))
 		return uint32(i)
-	})
+	}))
 	// add vir-node 06, 16, 26, 04, 14, 24, 02, 12, 22
 	hash.Add("6", "4", "2")
 	testCases := map[string]string{
