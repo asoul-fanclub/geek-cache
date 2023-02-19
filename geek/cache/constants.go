@@ -1,8 +1,10 @@
 package cache
 
+type MaxMemoryPolicy int
+
 const (
-	VOLATILE_LRU    = 1
-	VOLATILE_RANDOM = 2
-	ALLKEYS_LRU     = 3
-	ALLKEYS_RANDOM  = 4
+	VOLATILE_LRU    MaxMemoryPolicy = 1
+	VOLATILE_RANDOM MaxMemoryPolicy = 2
+	ALLKEYS_LRU     MaxMemoryPolicy = 3
+	ALLKEYS_RANDOM  MaxMemoryPolicy = 4
 )
