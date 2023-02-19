@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"container/list"
 	"fmt"
 	"sync"
 	"time"
@@ -15,8 +16,9 @@ type Cache interface {
 // cache struct
 type cache struct {
 	lock            sync.Mutex
-	cache           map[string]*entry             // map cache
+	cache           map[string]*list.Element      // map cache
 	expires         map[string]time.Time          // The expiration time of key
+	ll              *list.List                    // 双向链表
 	OnEvicted       func(key string, value Value) // The callback function when a record is deleted
 	maxBytes        int64                         // The maximum memory allowed
 	nbytes          int64                         // The memory is currently in use
@@ -31,7 +33,7 @@ type entry struct {
 
 func NewCache(maxSize int64, maxMemoryPolicy MaxMemoryPolicy) Cache {
 	answer := cache{
-		cache:           make(map[string]*entry),
+		cache:           make(map[string]*list.Element),
 		expires:         make(map[string]time.Time),
 		nbytes:          0,
 		maxBytes:        maxSize,
@@ -55,8 +57,8 @@ func (c *cache) Get(key string) (Value, error) {
 	// check for expiration
 	expirationTime, ok := c.expires[key]
 	if ok && expirationTime.Before(time.Now()) {
-		c.nbytes -= int64(c.cache[key].value.Len())
-		value := c.cache[key].value
+		c.nbytes -= int64(c.cache[key].Value.(*entry).value.Len())
+		value := c.cache[key].Value.(*entry).value
 		delete(c.cache, key)
 		delete(c.expires, key)
 		// rollback
@@ -67,7 +69,7 @@ func (c *cache) Get(key string) (Value, error) {
 	}
 	// get value
 	if v, ok := c.cache[key]; ok {
-		return v.value, nil
+		return v.Value.(*entry).value, nil
 	}
 	return nil, fmt.Errorf("cache miss error")
 }
@@ -77,12 +79,12 @@ func (c *cache) Add(key string, value Value) {
 	defer c.lock.Unlock()
 	// Check whether the key already exists
 	if _, ok := c.cache[key]; !ok {
-		c.nbytes += int64(value.Len() - c.cache[key].value.Len())
-		c.cache[key] = &entry{key, value}
+		c.nbytes += int64(value.Len() - c.cache[key].Value.(*entry).value.Len())
+		c.cache[key].Value = &entry{key, value}
 		delete(c.expires, key)
 	} else {
 		c.nbytes += int64(len(key) + value.Len())
-		c.cache[key] = &entry{key, value}
+		c.cache[key] = c.ll.PushBack(&entry{key, value})
 	}
 	c.freeMemoryIfNeeded()
 	c.lock.Lock()
@@ -93,11 +95,11 @@ func (c *cache) AddWithExpiration(key string, value Value, expirationTime time.T
 	defer c.lock.Unlock()
 	// Check whether the key already exists
 	if _, ok := c.cache[key]; ok {
-		c.nbytes += int64(value.Len() - c.cache[key].value.Len())
+		c.nbytes += int64(value.Len() - c.cache[key].Value.(*entry).value.Len())
 	} else {
 		c.nbytes += int64(len(key) + value.Len())
 	}
-	c.cache[key] = &entry{key, value}
+	c.cache[key] = c.ll.PushBack(&entry{key, value})
 	c.expires[key] = expirationTime
 
 	c.freeMemoryIfNeeded()
@@ -105,7 +107,22 @@ func (c *cache) AddWithExpiration(key string, value Value, expirationTime time.T
 }
 
 func (c *cache) freeMemoryIfNeeded() {
-
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	// 只有一种淘汰策略，lru
+	for c.nbytes > c.maxBytes {
+		v := c.ll.Front()
+		if v != nil {
+			c.ll.Remove(v)
+			kv := v.Value.(*entry)
+			delete(c.cache, kv.key)
+			delete(c.expires, kv.key)
+			c.nbytes -= int64(len(kv.key) + kv.value.Len())
+			if c.OnEvicted != nil {
+				c.OnEvicted(kv.key, kv.value)
+			}
+		}
+	}
 }
 
 func (c *cache) periodicMemoryClean() {
@@ -115,7 +132,7 @@ func (c *cache) periodicMemoryClean() {
 	for key := range c.expires {
 		// check for expiration
 		if c.expires[key].Before(time.Now()) {
-			c.nbytes -= int64(len(key) + c.cache[key].value.Len())
+			c.nbytes -= int64(len(key) + c.cache[key].Value.(*entry).value.Len())
 			delete(c.expires, key)
 			delete(c.cache, key)
 		}
