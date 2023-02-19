@@ -31,7 +31,7 @@ func (c *Client) Get(group, key string) ([]byte, error) {
 	}
 	defer cli.Close()
 
-	conn, err := registry.EtcdDial(cli, c.name)
+	conn, err := registry.EtcdDial(cli, "geek-cache", c.name)
 	if err != nil {
 		return nil, err
 	}
