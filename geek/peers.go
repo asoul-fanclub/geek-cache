@@ -24,7 +24,7 @@ type ClientPicker struct {
 	clients  map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
 }
 
-func NewClientPicker() *ClientPicker {
+func NewClientPicker(self string) *ClientPicker {
 	return &ClientPicker{}
 }
 

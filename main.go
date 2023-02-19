@@ -46,7 +46,7 @@ func main() {
 	// 添加picker到geek-cache中
 	// set client address
 	// TODO: will be substituted with etcd service discovery
-	picker := geek.NewClientPicker()
+	picker := geek.NewClientPicker(addr)
 	picker.Set(addrs...)
 	g.RegisterPeers(picker)
 

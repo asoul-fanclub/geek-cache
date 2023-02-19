@@ -28,23 +28,24 @@ func TestServer(t *testing.T) {
 	port := 50000 + r.Intn(100)
 	addr := fmt.Sprintf("localhost:%d", port)
 
-	// 启动服务
 	server, err := NewServer(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	log.Println("geek-cache is running at", addr)
 
+	// 添加peerPicker
+	picker := NewClientPicker(addr)
+	picker.Set(addr)
+	g.RegisterPeers(picker)
+
+	// 启动服务
 	go func() {
 		err := server.Start()
 		if err != nil {
 			log.Fatal(err)
 		}
 	}()
-	// 添加peerPicker
-	picker := NewClientPicker()
-	picker.Set(addr)
-	g.RegisterPeers(picker)
 
 	defer func() {
 		server.Stop()
