@@ -15,14 +15,13 @@ type Cache interface {
 
 // cache struct
 type cache struct {
-	lock            sync.Mutex
-	cache           map[string]*list.Element      // map cache
-	expires         map[string]time.Time          // The expiration time of key
-	ll              *list.List                    // 双向链表
-	OnEvicted       func(key string, value Value) // The callback function when a record is deleted
-	maxBytes        int64                         // The maximum memory allowed
-	nbytes          int64                         // The memory is currently in use
-	maxMemoryPolicy MaxMemoryPolicy               // max memory policy
+	lock      sync.Mutex
+	cache     map[string]*list.Element      // map cache
+	expires   map[string]time.Time          // The expiration time of key
+	ll        *list.List                    // 双向链表
+	OnEvicted func(key string, value Value) // The callback function when a record is deleted
+	maxBytes  int64                         // The maximum memory allowed
+	nbytes    int64                         // The memory is currently in use
 }
 
 // 通过key可以在记录删除时，删除字典缓存中的映射
@@ -31,14 +30,13 @@ type entry struct {
 	value Value
 }
 
-func NewCache(maxSize int64, maxMemoryPolicy MaxMemoryPolicy) Cache {
+func NewCache(maxSize int64) Cache {
 	answer := cache{
-		cache:           make(map[string]*list.Element),
-		expires:         make(map[string]time.Time),
-		nbytes:          0,
-		ll:              list.New(),
-		maxBytes:        maxSize,
-		maxMemoryPolicy: maxMemoryPolicy,
+		cache:    make(map[string]*list.Element),
+		expires:  make(map[string]time.Time),
+		nbytes:   0,
+		ll:       list.New(),
+		maxBytes: maxSize,
 	}
 	go func() {
 		ticker := time.Tick(1 * time.Hour)

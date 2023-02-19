@@ -11,7 +11,7 @@ import (
 
 func TestCache_GetAndAdd(t *testing.T) {
 	var wg sync.WaitGroup
-	cache := NewCache(1000000000, ALLKEYS_LRU)
+	cache := NewCache(1000000000)
 	wg.Add(2)
 	go func() {
 		for i := 0; i < 1000000; i++ {
