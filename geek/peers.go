@@ -24,8 +24,10 @@ type ClientPicker struct {
 	clients  map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
 }
 
-func NewClientPicker() *ClientPicker {
-	return &ClientPicker{}
+func NewClientPicker(self string) *ClientPicker {
+	return &ClientPicker{
+		self: self,
+	}
 }
 
 // add peer to cluster, create a new Client instance for every peer
