@@ -58,6 +58,7 @@ func (c *cache) Get(key string) (Value, error) {
 	if ok && expirationTime.Before(time.Now()) {
 		c.nbytes -= int64(c.cache[key].Value.(*entry).value.Len())
 		value := c.cache[key].Value.(*entry).value
+		c.ll.Remove(c.cache[key])
 		delete(c.cache, key)
 		delete(c.expires, key)
 		// rollback
@@ -68,6 +69,7 @@ func (c *cache) Get(key string) (Value, error) {
 	}
 	// get value
 	if v, ok := c.cache[key]; ok {
+		c.ll.MoveToBack(v)
 		return v.Value.(*entry).value, nil
 	}
 	return nil, fmt.Errorf("cache miss error")
@@ -121,6 +123,7 @@ func (c *cache) freeMemoryIfNeeded() {
 	}
 }
 
+// Scan and remove expired kv
 func (c *cache) periodicMemoryClean() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
