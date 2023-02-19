@@ -47,7 +47,7 @@ func main() {
 	// set client address
 	// TODO: will be substituted with etcd service discovery
 	picker := geek.NewClientPicker(addr)
-	picker.Set(addrs...)
+	picker.Set(nil, addrs...)
 	g.RegisterPeers(picker)
 
 	for {

@@ -32,10 +32,10 @@ func NewClientPicker(self string) *ClientPicker {
 }
 
 // add peer to cluster, create a new Client instance for every peer
-func (s *ClientPicker) Set(peers ...string) {
+func (s *ClientPicker) Set(hash consistenthash.Hash, peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(GlobalReplicas, nil)
+	s.consHash = consistenthash.New(GlobalReplicas, hash)
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
@@ -54,11 +54,11 @@ func (s *ClientPicker) PickPeer(key string) (PeerGetter, bool) {
 	return nil, false
 }
 
-func (s *ClientPicker) SetWithReplicas(replicas int, peers ...string) {
+func (s *ClientPicker) SetWithReplicas(hash consistenthash.Hash, replicas int, peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.consHash == nil {
-		s.consHash = consistenthash.New(replicas, nil)
+		s.consHash = consistenthash.New(replicas, hash)
 	}
 	s.consHash.Add(peers...)
 	if s.clients == nil {
@@ -69,14 +69,11 @@ func (s *ClientPicker) SetWithReplicas(replicas int, peers ...string) {
 	}
 }
 
-func (s *ClientPicker) SetSinglePeer(replicas int, peer string) {
-	if replicas < 1 {
-		replicas = GlobalReplicas
-	}
+func (s *ClientPicker) SetSinglePeer(hash consistenthash.Hash, replicas int, peer string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.consHash == nil {
-		s.consHash = consistenthash.New(replicas, nil)
+		s.consHash = consistenthash.New(replicas, hash)
 	}
 	s.consHash.Add(peer)
 	if s.clients == nil {

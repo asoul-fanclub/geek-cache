@@ -11,6 +11,11 @@ import (
 	"strconv"
 )
 
+var (
+	GlobalHash  = defaultHash			// a kind of datas need to be sure that with the same hash func
+	defaultHash = crc32.ChecksumIEEE
+)
+
 type Hash func(data []byte) uint32
 
 type Map struct {
@@ -29,7 +34,7 @@ func New(replicas int, fn Hash) *Map {
 	}
 	// default use crc32.ChecksumIEEE as hash func
 	if m.hash == nil {
-		m.hash = crc32.ChecksumIEEE
+		m.hash = defaultHash
 	}
 	return m
 }

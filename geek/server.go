@@ -16,12 +16,14 @@ import (
 )
 
 var (
-	GlobalReplicas = defaultReplicas
+	GlobalReplicas    = defaultReplicas
+	GlobalServiceName = defaultServiceName
 )
 
 const (
-	defaultAddr     = "127.0.0.1:7654"
-	defaultReplicas = 150
+	defaultServiceName = "geek-cache"
+	defaultAddr        = "127.0.0.1:7654"
+	defaultReplicas    = 150
 )
 
 type Server struct {
@@ -91,7 +93,7 @@ func (s *Server) Start() error {
 	// 启动 reflection 反射服务
 	reflection.Register(grpcServer)
 	go func() {
-		err := registy.Register("geek-cache", s.self, s.stopSignal)
+		err := registy.Register(GlobalServiceName, s.self, s.stopSignal)
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
