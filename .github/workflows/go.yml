@@ -33,5 +33,7 @@ jobs:
         version: 3.9.1
         # Include github pre-releases in latest version calculation
         include-pre-releases: false
+        repo-token: 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
+    
     - name: Test
       run: go test -v ./...
