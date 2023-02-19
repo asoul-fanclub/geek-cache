@@ -3,6 +3,7 @@ package geek
 import (
 	"context"
 	"fmt"
+	"github.com/Makonike/geek-cache/geek/utils"
 	"log"
 	"net"
 	"strings"
@@ -32,7 +33,7 @@ type Server struct {
 func NewServer(self string) (*Server, error) {
 	if self == "" {
 		self = defaultAddr
-	} else if !validPeerAddr(self) {
+	} else if !utils.ValidPeerAddr(self) {
 		return nil, fmt.Errorf("invalid address: %v", self)
 	}
 	return &Server{

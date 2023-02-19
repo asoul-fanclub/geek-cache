@@ -93,7 +93,7 @@ func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 		return ByteView{}, err
 	}
 	return ByteView{
-		b: cloneBytes(bytes),
+		B: cloneBytes(bytes),
 	}, nil
 }
 

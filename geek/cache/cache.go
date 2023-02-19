@@ -36,6 +36,7 @@ func NewCache(maxSize int64, maxMemoryPolicy MaxMemoryPolicy) Cache {
 		cache:           make(map[string]*list.Element),
 		expires:         make(map[string]time.Time),
 		nbytes:          0,
+		ll:              list.New(),
 		maxBytes:        maxSize,
 		maxMemoryPolicy: maxMemoryPolicy,
 	}
@@ -78,7 +79,7 @@ func (c *cache) Add(key string, value Value) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	// Check whether the key already exists
-	if _, ok := c.cache[key]; !ok {
+	if _, ok := c.cache[key]; ok {
 		c.nbytes += int64(value.Len() - c.cache[key].Value.(*entry).value.Len())
 		c.cache[key].Value = &entry{key, value}
 		delete(c.expires, key)
@@ -87,7 +88,6 @@ func (c *cache) Add(key string, value Value) {
 		c.cache[key] = c.ll.PushBack(&entry{key, value})
 	}
 	c.freeMemoryIfNeeded()
-	c.lock.Lock()
 }
 
 func (c *cache) AddWithExpiration(key string, value Value, expirationTime time.Time) {
@@ -103,12 +103,10 @@ func (c *cache) AddWithExpiration(key string, value Value, expirationTime time.T
 	c.expires[key] = expirationTime
 
 	c.freeMemoryIfNeeded()
-	c.lock.Lock()
 }
 
+// lockless !!!
 func (c *cache) freeMemoryIfNeeded() {
-	c.lock.Lock()
-	defer c.lock.Unlock()
 	// 只有一种淘汰策略，lru
 	for c.nbytes > c.maxBytes {
 		v := c.ll.Front()
