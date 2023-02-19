@@ -58,6 +58,7 @@ func (c *Cache) RemoveOldest() {
 	}
 }
 
+// todo: 这里有bug，如果key已经存在，则无法更新
 // Add 添加或删除缓存
 // 此处是先加后删。如果加入一个较大值会OOM
 func (c *Cache) Add(key string, value Value) {
