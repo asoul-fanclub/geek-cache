@@ -12,8 +12,10 @@ import (
 )
 
 var (
-	GlobalHash  = defaultHash			// a kind of datas need to be sure that with the same hash func
-	defaultHash = crc32.ChecksumIEEE
+	GlobalReplicas  = defaultReplicas
+	GlobalHash      = defaultHash // a kind of datas need to be sure that with the same hash func
+	defaultHash     = crc32.ChecksumIEEE
+	defaultReplicas = 150
 )
 
 type Hash func(data []byte) uint32

@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	defaultEtcdConfig = &clientv3.Config{
+	GlobalClientConfig *clientv3.Config = defaultEtcdConfig
+	defaultEtcdConfig                   = &clientv3.Config{
 		Endpoints:   []string{"localhost:2379"},
 		DialTimeout: 5 * time.Second,
 	}

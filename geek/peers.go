@@ -35,7 +35,7 @@ func NewClientPicker(self string) *ClientPicker {
 func (s *ClientPicker) Set(hash consistenthash.Hash, peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(GlobalReplicas, hash)
+	s.consHash = consistenthash.New(consistenthash.GlobalReplicas, hash)
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {

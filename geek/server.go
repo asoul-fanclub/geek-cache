@@ -16,14 +16,12 @@ import (
 )
 
 var (
-	GlobalReplicas    = defaultReplicas
 	GlobalServiceName = defaultServiceName
 )
 
 const (
 	defaultServiceName = "geek-cache"
 	defaultAddr        = "127.0.0.1:7654"
-	defaultReplicas    = 150
 )
 
 type Server struct {
