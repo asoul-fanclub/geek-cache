@@ -12,7 +12,26 @@ The package supports 3 last Go versions and requires a Go version with modules s
 
 Be sure to install **etcd v3**(port 2379), grpcurl(for your tests), protobuf v3.
 
+## Config
 
+In your application, you can configure like following:
+
+- Server
+
+```go
+func NewServer(self string, opts ...ServerOptions) (*Server, error)
+
+geek.NewServer(addr, geek.ServiceName("your-service-name"))
+```
+
+- client
+
+```go
+registry.GlobalClientConfig = &clientv3.Config{
+	Endpoints:   []string{"localhost:2379"}, // etcd address
+	DialTimeout: 5 * time.Second, // the timeout for failing to establish a connection
+}
+```
 
 ## Test
 
@@ -35,14 +54,12 @@ func main() {
 	var port int
 	flag.IntVar(&port, "port", 8001, "Geecache server port")
 	flag.Parse()
-
 	// mock database or other dataSource
 	var mysql = map[string]string{
 		"Tom":  "630",
 		"Tom1": "631",
 		"Tom2": "632",
 	}
-
 	// NewGroup create a Group which means a kind of sources
 	// contain a func that used when misses cache
 	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
@@ -70,8 +87,12 @@ func main() {
 	for _, addr := range addrMap {
 		addrs = append(addrs, "127.0.0.1:"+addr)
 	}
-	server.Set(addrs...)
-	g.RegisterPeers(server)
+
+	// set client address
+	picker := geek.NewClientPicker(addr)
+	picker.SetSimply(addrs...)
+	g.RegisterPeers(picker)
+
 	for {
 		err = server.Start()
 		if err != nil {
@@ -80,8 +101,6 @@ func main() {
 		}
 	}
 }
-
-
 ```
 
 a.sh
@@ -113,65 +132,66 @@ wait
 
 Running the shell, then you can see the results following.
 
-```test
-2023/02/17 11:14:24 [127.0.0.1:8001] register service success
-2023/02/17 11:14:24 [127.0.0.1:8003] register service success
-2023/02/17 11:14:24 [127.0.0.1:8002] register service success
+```bash
+$ ./a.sh 
+2023/02/20 10:25:06 [127.0.0.1:8001] register service success
+2023/02/20 10:25:06 [127.0.0.1:8003] register service success
+2023/02/20 10:25:06 [127.0.0.1:8002] register service success
 >>> start test
-2023/02/17 11:14:26 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
-2023/02/17 11:14:26 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8002
-2023/02/17 11:14:26 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/17 11:14:26 [SlowDB] search key Tom
+2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
+2023/02/20 10:25:08 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8002
+2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
+2023/02/20 10:25:08 [SlowDB] search key Tom
 {
   "value": "NjMw"
 }
-2023/02/17 11:14:26 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom1)
-2023/02/17 11:14:26 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
-2023/02/17 11:14:26 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/17 11:14:26 [SlowDB] search key Tom1
+2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom1)
+2023/02/20 10:25:08 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
+2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
+2023/02/20 10:25:08 [SlowDB] search key Tom1
 {
   "value": "NjMx"
 }
-2023/02/17 11:14:26 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom2)
-2023/02/17 11:14:26 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
-2023/02/17 11:14:26 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/17 11:14:26 [SlowDB] search key Tom2
+2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom2)
+2023/02/20 10:25:08 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
+2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
+2023/02/20 10:25:08 [SlowDB] search key Tom2
 {
   "value": "NjMy"
 }
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/17 11:14:27 [Geek-Cache] hit
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
+2023/02/20 10:25:09 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom1)
-2023/02/17 11:14:27 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/17 11:14:27 [Geek-Cache] hit
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom1)
+2023/02/20 10:25:09 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
+2023/02/20 10:25:09 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom2)
-2023/02/17 11:14:27 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/17 11:14:27 [Geek-Cache] hit
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom2)
+2023/02/20 10:25:09 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
+2023/02/20 10:25:09 [Geek-Cache] hit
 {
   "value": "NjMy"
 }
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
-2023/02/17 11:14:27 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8002
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/17 11:14:27 [Geek-Cache] hit
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
+2023/02/20 10:25:09 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8002
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
+2023/02/20 10:25:09 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/17 11:14:27 [Geek-Cache] hit
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
+2023/02/20 10:25:09 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
-2023/02/17 11:14:27 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/17 11:14:27 [Geek-Cache] hit
+2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
+2023/02/20 10:25:09 [Geek-Cache] hit
 {
   "value": "NjMy"
 }

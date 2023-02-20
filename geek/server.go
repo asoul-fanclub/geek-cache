@@ -16,32 +16,41 @@ import (
 )
 
 const (
-	defaultBasePath = "/_geek_cache/"
-	defaultAddr     = "127.0.0.1:7654"
-	defaultReplicas = 150
+	defaultServiceName = "geek-cache"
+	defaultAddr        = "127.0.0.1:7654"
 )
 
 type Server struct {
 	pb.UnimplementedGroupCacheServer
 	self       string     // self ip
+	sname      string     // name of service
 	status     bool       // true if the server is running
 	mu         sync.Mutex // guards
 	stopSignal chan error // signal to stop
 }
 
-func NewServer(self string) (*Server, error) {
+type ServerOptions func(*Server)
+
+func NewServer(self string, opts ...ServerOptions) (*Server, error) {
 	if self == "" {
 		self = defaultAddr
 	} else if !validPeerAddr(self) {
 		return nil, fmt.Errorf("invalid address: %v", self)
 	}
-	return &Server{
-		self: self,
-	}, nil
+	s := Server{
+		self:  self,
+		sname: defaultServiceName,
+	}
+	for _, opt := range opts {
+		opt(&s)
+	}
+	return &s, nil
 }
 
-func (s *Server) Self() string {
-	return s.self
+func ServiceName(sname string) ServerOptions {
+	return func(s *Server) {
+		s.sname = sname
+	}
 }
 
 // Log info
@@ -88,7 +97,7 @@ func (s *Server) Start() error {
 	// 启动 reflection 反射服务
 	reflection.Register(grpcServer)
 	go func() {
-		err := registy.Register("geek-cache", s.self, s.stopSignal)
+		err := registy.Register(s.sname, s.self, s.stopSignal)
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
