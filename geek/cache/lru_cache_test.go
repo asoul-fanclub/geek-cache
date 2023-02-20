@@ -13,16 +13,16 @@ func TestCache_GetAndAdd(t *testing.T) {
 	cache := NewLRUCache(1000000000)
 	wg.Add(2)
 	go func() {
+		defer wg.Done()
 		for i := 0; i < 1000000; i++ {
 			cache.Add(strconv.Itoa(i), &testValue{"东神牛逼"})
 		}
-		wg.Done()
 	}()
 	go func() {
+		defer wg.Done()
 		for i := 0; i < 1000000; i++ {
 			cache.Add(strconv.Itoa(i+1000000), &testValue{"欧神牛逼"})
 		}
-		wg.Done()
 	}()
 	wg.Wait()
 	a := assert.New(t)

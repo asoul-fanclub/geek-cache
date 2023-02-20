@@ -103,7 +103,7 @@ func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 func (g *Group) getLocally(key string) (ByteView, error) {
 	bytes, f, expirationTime := g.getter.Get(key)
 	if !f {
-		return ByteView{}, fmt.Errorf("date not found")
+		return ByteView{}, fmt.Errorf("data not found")
 	}
 	bw := ByteView{cloneBytes(bytes)}
 	if expirationTime.UnixNano() != 0 {
