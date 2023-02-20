@@ -12,12 +12,16 @@ import (
 )
 
 type Client struct {
-	name string // name of remote server, e.g. ip:port
+	name        string // name of remote server, e.g. ip:port
+	serviceName string // name of service, e.g. geek-cache
 }
 
 // NewClient creates a new client
-func NewClient(name string) (*Client, error) {
-	return &Client{name: name}, nil
+func NewClient(name, serviceName string) (*Client, error) {
+	return &Client{
+		name:        name,
+		serviceName: serviceName,
+	}, nil
 }
 
 // Get send the url for getting specific group and key,
@@ -31,7 +35,7 @@ func (c *Client) Get(group, key string) ([]byte, error) {
 	}
 	defer cli.Close()
 
-	conn, err := registry.EtcdDial(cli, "geek-cache", c.name)
+	conn, err := registry.EtcdDial(cli, c.serviceName, c.name)
 	if err != nil {
 		return nil, err
 	}

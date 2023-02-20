@@ -19,15 +19,29 @@ type PeerGetter interface {
 }
 
 type ClientPicker struct {
-	self     string              // self ip
-	mu       sync.Mutex          // guards
-	consHash *consistenthash.Map // stores the list of peers, selected by specific key
-	clients  map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
+	self        string // self ip
+	serviceName string
+	mu          sync.Mutex          // guards
+	consHash    *consistenthash.Map // stores the list of peers, selected by specific key
+	clients     map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
 }
 
-func NewClientPicker(self string) *ClientPicker {
-	return &ClientPicker{
-		self: self,
+func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
+	picker := ClientPicker{
+		self:        self,
+		serviceName: defaultServiceName,
+	}
+	for _, opt := range opts {
+		opt(&picker)
+	}
+	return &picker
+}
+
+type PickerOptions func(*ClientPicker)
+
+func PickerServiceName(serviceName string) PickerOptions {
+	return func(picker *ClientPicker) {
+		picker.serviceName = serviceName
 	}
 }
 
@@ -39,7 +53,7 @@ func (s *ClientPicker) Set(hash consistenthash.Hash, peers ...string) {
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer)
+		s.clients[peer], _ = NewClient(peer, s.serviceName)
 	}
 }
 
@@ -50,7 +64,7 @@ func (s *ClientPicker) SetSimply(peers ...string) {
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer)
+		s.clients[peer], _ = NewClient(peer, s.serviceName)
 	}
 }
 
@@ -76,7 +90,7 @@ func (s *ClientPicker) SetWithReplicas(hash consistenthash.Hash, replicas int, p
 		s.clients = make(map[string]*Client, len(peers))
 	}
 	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer)
+		s.clients[peer], _ = NewClient(peer, s.serviceName)
 	}
 }
 
@@ -90,7 +104,7 @@ func (s *ClientPicker) SetSinglePeer(hash consistenthash.Hash, replicas int, pee
 	if s.clients == nil {
 		s.clients = make(map[string]*Client, 1)
 	}
-	s.clients[peer], _ = NewClient(peer)
+	s.clients[peer], _ = NewClient(peer, s.serviceName)
 }
 
 // Log info

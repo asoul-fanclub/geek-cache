@@ -21,7 +21,7 @@ In your application, you can configure like following:
 ```go
 func NewServer(self string, opts ...ServerOptions) (*Server, error)
 
-geek.NewServer(addr, geek.ServiceName("your-service-name"))
+server, err := geek.NewServer(addr, geek.ServiceName("your-service-name"))
 ```
 
 - client
@@ -31,6 +31,12 @@ registry.GlobalClientConfig = &clientv3.Config{
 	Endpoints:   []string{"localhost:2379"}, // etcd address
 	DialTimeout: 5 * time.Second, // the timeout for failing to establish a connection
 }
+```
+
+- picker
+
+```go
+picker := geek.NewClientPicker(addr, geek.PickerServiceName("geek-cache"))
 ```
 
 ## Test
