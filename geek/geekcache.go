@@ -107,6 +107,7 @@ func (g *Group) getLocally(key string) (ByteView, error) {
 	}
 	bw := ByteView{cloneBytes(bytes)}
 	if expirationTime.UnixNano() != 0 {
+		fmt.Println(expirationTime.UnixNano())
 		g.mainCache.addWithExpiration(key, bw, expirationTime)
 	} else {
 		g.mainCache.add(key, bw)

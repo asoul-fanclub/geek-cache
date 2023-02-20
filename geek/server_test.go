@@ -22,7 +22,7 @@ func TestServer(t *testing.T) {
 			if v, ok := server_test_db[key]; ok {
 				return []byte(v), true, time.Time{}
 			}
-			return nil, true, time.Time{}
+			return nil, false, time.Time{}
 		}))
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	port := 50000 + r.Intn(100)

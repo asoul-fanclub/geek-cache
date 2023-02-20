@@ -67,7 +67,7 @@ func (c *lruCache) Get(key string) (Value, bool) {
 		return nil, false
 	}
 	// get value
-	if v, ok := c.cacheMap[key]; ok {
+	if v, ok2 := c.cacheMap[key]; ok2 {
 		c.ll.MoveToBack(v)
 		return v.Value.(*entry).value, true
 	}
