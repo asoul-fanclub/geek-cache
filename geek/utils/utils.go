@@ -1,10 +1,10 @@
-package geek
+package utils
 
 import (
 	"strings"
 )
 
-func validPeerAddr(addr string) bool {
+func ValidPeerAddr(addr string) bool {
 	t1 := strings.Split(addr, ":")
 	if len(t1) != 2 {
 		return false

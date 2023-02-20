@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 
 	"github.com/Makonike/geek-cache/geek/singleflight"
 )
@@ -100,29 +101,29 @@ func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 }
 
 func (g *Group) getLocally(key string) (ByteView, error) {
-	bytes, err := g.getter.Get(key)
-	if err != nil {
-		return ByteView{}, err
+	bytes, f, expirationTime := g.getter.Get(key)
+	if !f {
+		return ByteView{}, fmt.Errorf("data not found")
 	}
 	bw := ByteView{cloneBytes(bytes)}
-	g.populateCache(key, bw)
+	if !expirationTime.IsZero() {
+		g.mainCache.addWithExpiration(key, bw, expirationTime)
+	} else {
+		g.mainCache.add(key, bw)
+	}
 	return bw, nil
-}
-
-func (g *Group) populateCache(key string, value ByteView) {
-	g.mainCache.add(key, value)
 }
 
 // Getter loads data for a key locally
 // call back when a key cache missed
 // impl by user
 type Getter interface {
-	Get(key string) ([]byte, error)
+	Get(key string) ([]byte, bool, time.Time)
 }
 
-type GetterFunc func(key string) ([]byte, error)
+type GetterFunc func(key string) ([]byte, bool, time.Time)
 
-func (f GetterFunc) Get(key string) ([]byte, error) {
+func (f GetterFunc) Get(key string) ([]byte, bool, time.Time) {
 	return f(key)
 }
 

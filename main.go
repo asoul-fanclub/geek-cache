@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
+	"time"
 
 	"github.com/Makonike/geek-cache/geek"
 )
@@ -21,12 +21,12 @@ func main() {
 	// NewGroup create a Group which means a kind of sources
 	// contain a func that used when misses cache
 	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
-		func(key string) ([]byte, error) {
+		func(key string) ([]byte, bool, time.Time) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := mysql[key]; ok {
-				return []byte(v), nil
+				return []byte(v), true, time.Time{}
 			}
-			return nil, fmt.Errorf("%s not found", key)
+			return nil, false, time.Time{}
 		}))
 
 	addrMap := map[int]string{
