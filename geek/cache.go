@@ -2,21 +2,31 @@ package geek
 
 import (
 	c "github.com/Makonike/geek-cache/geek/cache"
+	"sync"
 	"time"
 )
 
 // cache 实例化lru，封装get和add。
 type cache struct {
+	lock       sync.Locker
 	lruCache   c.Cache
 	cacheBytes int64
 }
 
 func (cache *cache) add(key string, value ByteView) {
-	// 懒加载
-	if cache.lruCache == nil {
-		cache.lruCache = c.NewLRUCache(cache.cacheBytes)
-	}
+	// lazy load
+	cache.lruCacheLazyLoadIfNeed()
 	cache.lruCache.Add(key, value)
+}
+
+func (cache *cache) lruCacheLazyLoadIfNeed() {
+	if cache.lruCache == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		if cache.lruCache == nil {
+			cache.lruCache = c.NewLRUCache(cache.cacheBytes)
+		}
+	}
 }
 
 func (cache *cache) get(key string) (value ByteView, ok bool) {
@@ -30,9 +40,7 @@ func (cache *cache) get(key string) (value ByteView, ok bool) {
 }
 
 func (cache *cache) addWithExpiration(key string, value ByteView, expirationTime time.Time) {
-	// 懒加载
-	if cache.lruCache == nil {
-		cache.lruCache = c.NewLRUCache(cache.cacheBytes)
-	}
+	// lazy load
+	cache.lruCacheLazyLoadIfNeed()
 	cache.lruCache.AddWithExpiration(key, value, expirationTime)
 }
