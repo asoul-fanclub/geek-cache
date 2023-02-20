@@ -1,14 +1,13 @@
 package geek
 
 import (
-	c "github.com/Makonike/geek-cache/geek/cache"
-	"sync"
 	"time"
+
+	c "github.com/Makonike/geek-cache/geek/cache"
 )
 
 // cache 实例化lru，封装get和add。
 type cache struct {
-	lock       sync.Locker
 	lruCache   c.Cache
 	cacheBytes int64
 }

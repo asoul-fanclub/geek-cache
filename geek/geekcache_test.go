@@ -1,10 +1,11 @@
 package geek
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 	time "time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var db = map[string]string{
