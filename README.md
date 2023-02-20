@@ -12,7 +12,26 @@ The package supports 3 last Go versions and requires a Go version with modules s
 
 Be sure to install **etcd v3**(port 2379), grpcurl(for your tests), protobuf v3.
 
+## Config
 
+In your application, you can configure like following:
+
+- Server
+
+```go
+func NewServer(self string, opts ...ServerOptions) (*Server, error)
+
+geek.NewServer(addr, ServiceName("your-service-name"))
+```
+
+- client
+
+```go
+registry.GlobalClientConfig = &clientv3.Config{
+	Endpoints:   []string{"localhost:2379"}, // etcd address
+	DialTimeout: 5 * time.Second, // the timeout for failing to establish a connection
+}
+```
 
 ## Test
 
@@ -35,11 +54,14 @@ func main() {
 	var port int
 	flag.IntVar(&port, "port", 8001, "Geecache server port")
 	flag.Parse()
+	// mock database or other dataSource
 	var mysql = map[string]string{
 		"Tom":  "630",
 		"Tom1": "631",
 		"Tom2": "632",
 	}
+	// NewGroup create a Group which means a kind of sources
+	// contain a func that used when misses cache
 	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
 		func(key string) ([]byte, error) {
 			log.Println("[SlowDB] search key", key)
@@ -66,9 +88,7 @@ func main() {
 		addrs = append(addrs, "127.0.0.1:"+addr)
 	}
 
-	// 添加picker到geek-cache中
 	// set client address
-	// TODO: will be substituted with etcd service discovery
 	picker := geek.NewClientPicker(addr)
 	picker.SetSimply(addrs...)
 	g.RegisterPeers(picker)
@@ -81,7 +101,6 @@ func main() {
 		}
 	}
 }
-
 ```
 
 a.sh
