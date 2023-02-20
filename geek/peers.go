@@ -1,11 +1,16 @@
 package geek
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/Makonike/geek-cache/geek/consistenthash"
+	registry "github.com/Makonike/geek-cache/geek/registry"
+	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
 // PeerPicker must be implemented to locate the peer that owns a specific key
@@ -21,7 +26,7 @@ type PeerGetter interface {
 type ClientPicker struct {
 	self        string // self ip
 	serviceName string
-	mu          sync.Mutex          // guards
+	mu          sync.RWMutex        // guards
 	consHash    *consistenthash.Map // stores the list of peers, selected by specific key
 	clients     map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
 }
@@ -30,10 +35,69 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 	picker := ClientPicker{
 		self:        self,
 		serviceName: defaultServiceName,
+		clients:     make(map[string]*Client),
+		mu:          sync.RWMutex{},
+		consHash:    consistenthash.New(),
 	}
 	for _, opt := range opts {
 		opt(&picker)
 	}
+	waitFullCh := make(chan struct{})
+	// 增量更新
+	go func() {
+		cli, err := clientv3.New(*registry.GlobalClientConfig)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		defer cli.Close()
+		// watcher will watch for changes of the service node
+		watcher := clientv3.NewWatcher(cli)
+		watchCh := watcher.Watch(context.Background(), picker.serviceName, clientv3.WithPrefix())
+		// 先增量更新获取完整哈希环
+		<-waitFullCh
+		for {
+			// TODO: catch self
+			a := <-watchCh
+			go func() {
+				picker.mu.Lock()
+				defer picker.mu.Unlock()
+				for _, x := range a.Events {
+					// x: geek-cache/127.0.0.1:8004
+					key := string(x.Kv.Key)
+					idx := strings.Index(key, picker.serviceName)
+					addr := key[idx+len(picker.serviceName)+1:]
+					fmt.Printf("x: %v\n", addr)
+					if x.IsCreate() {
+						if _, ok := picker.clients[addr]; ok {
+							log.Panicf("[Event] discovered node %v already exists\n", addr)
+						}
+						picker.consHash.Add(addr)
+						picker.clients[addr], _ = NewClient(addr, picker.serviceName)
+					} else if !x.IsCreate() {
+						if _, ok := picker.clients[addr]; !ok {
+							log.Panicf("[Event] discovered node %v not exists\n", addr)
+						}
+						picker.consHash.Remove(addr)
+						delete(picker.clients, addr)
+					}
+				}
+			}()
+		}
+	}()
+	// 全量更新
+	go func() {
+		ticker := time.NewTicker(time.Second * 5)
+		for {
+			<-ticker.C
+			go func() {
+				picker.mu.Lock()
+				defer picker.mu.Unlock()
+				// TODO: get full
+				<-waitFullCh
+			}()
+		}
+	}()
 	return &picker
 }
 
@@ -45,66 +109,15 @@ func PickerServiceName(serviceName string) PickerOptions {
 	}
 }
 
-// add peer to cluster, create a new Client instance for every peer
-func (s *ClientPicker) Set(hash consistenthash.Hash, peers ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(consistenthash.HashFunc(hash))
-	s.consHash.Add(peers...)
-	s.clients = make(map[string]*Client, len(peers))
-	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer, s.serviceName)
-	}
-}
-
-func (s *ClientPicker) SetSimply(peers ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.consHash = consistenthash.New()
-	s.consHash.Add(peers...)
-	s.clients = make(map[string]*Client, len(peers))
-	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer, s.serviceName)
-	}
-}
-
 // PickPeer pick a peer with the consistenthash algorithm
 func (s *ClientPicker) PickPeer(key string) (PeerGetter, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	if peer := s.consHash.Get(key); peer != "" && peer != s.self {
 		s.Log("Pick peer %s", peer)
 		return s.clients[peer], true
 	}
 	return nil, false
-}
-
-func (s *ClientPicker) SetWithReplicas(hash consistenthash.Hash, replicas int, peers ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.consHash == nil {
-		s.consHash = consistenthash.New(consistenthash.Replicas(replicas), consistenthash.HashFunc(hash))
-	}
-	s.consHash.Add(peers...)
-	if s.clients == nil {
-		s.clients = make(map[string]*Client, len(peers))
-	}
-	for _, peer := range peers {
-		s.clients[peer], _ = NewClient(peer, s.serviceName)
-	}
-}
-
-func (s *ClientPicker) SetSinglePeer(hash consistenthash.Hash, replicas int, peer string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.consHash == nil {
-		s.consHash = consistenthash.New(consistenthash.Replicas(replicas), consistenthash.HashFunc(hash))
-	}
-	s.consHash.Add(peer)
-	if s.clients == nil {
-		s.clients = make(map[string]*Client, 1)
-	}
-	s.clients[peer], _ = NewClient(peer, s.serviceName)
 }
 
 // Log info

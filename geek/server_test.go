@@ -30,7 +30,6 @@ func TestServer(t *testing.T) {
 
 	// 添加peerPicker
 	picker := NewClientPicker(addr)
-	picker.SetSimply(addr)
 
 	g.RegisterPeers(picker)
 
