@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
+	"time"
 
 	"github.com/Makonike/geek-cache/geek"
 )
@@ -18,12 +18,12 @@ func main() {
 		"Tom2": "632",
 	}
 	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
-		func(key string) ([]byte, error) {
+		func(key string) ([]byte, bool, *time.Time) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := mysql[key]; ok {
-				return []byte(v), nil
+				return []byte(v), true, nil
 			}
-			return nil, fmt.Errorf("%s not found", key)
+			return nil, false, nil
 		}))
 
 	addrMap := map[int]string{

@@ -1,8 +1,8 @@
 package geek
 
 import (
-	"fmt"
 	"testing"
+	"time"
 )
 
 var db = map[string]string{
@@ -15,12 +15,12 @@ var db = map[string]string{
 func TestGroup_Get(t *testing.T) {
 	loads := make(map[string]int)
 	gee := NewGroup("scores", 2<<10, GetterFunc(
-		func(key string) ([]byte, error) {
+		func(key string) ([]byte, bool, *time.Time) {
 			if v, ok := db[key]; ok {
 				loads[key] += 1
-				return []byte(v), nil
+				return []byte(v), true, nil
 			}
-			return nil, fmt.Errorf("%v not exist", key)
+			return nil, false, nil
 		}),
 	)
 	gee1 := GetGroup("scores")
