@@ -47,7 +47,7 @@ func NewServer(self string, opts ...ServerOptions) (*Server, error) {
 	return &s, nil
 }
 
-func (s *Server) ServiceName(sname string) ServerOptions {
+func ServiceName(sname string) ServerOptions {
 	return func(s *Server) {
 		s.sname = sname
 	}

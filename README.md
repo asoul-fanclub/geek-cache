@@ -21,7 +21,7 @@ In your application, you can configure like following:
 ```go
 func NewServer(self string, opts ...ServerOptions) (*Server, error)
 
-geek.NewServer(addr, ServiceName("your-service-name"))
+geek.NewServer(addr, geek.ServiceName("your-service-name"))
 ```
 
 - client
