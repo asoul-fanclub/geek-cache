@@ -2,19 +2,19 @@ package geek
 
 // ByteView 只读的字节视图，用于缓存数据
 type ByteView struct {
-	B []byte
+	b []byte
 }
 
 func (b ByteView) Len() int {
-	return len(b.B)
+	return len(b.b)
 }
 
 func (b ByteView) ByteSLice() []byte {
-	return cloneBytes(b.B)
+	return cloneBytes(b.b)
 }
 
 func (b ByteView) String() string {
-	return string(b.B)
+	return string(b.b)
 }
 
 func cloneBytes(b []byte) []byte {

@@ -70,12 +70,12 @@ func TestGroup_SetTimeout(t *testing.T) {
 	// 读取key并校验
 	gee1 := GetGroup("scores")
 	v, _ := gee1.Get("Alice")
-	a.Equal(string(v.B), "653")
+	a.Equal(v.String(), "653")
 
 	// 过期
 	db2["Alice"] = "123"
 	time.Sleep(10 * time.Second)
 	v2, _ := gee1.Get("Alice")
-	a.Equal(string(v2.B), "123")
+	a.Equal(v2.String(), "123")
 
 }
