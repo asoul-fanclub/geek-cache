@@ -2,9 +2,10 @@ package geek
 
 import (
 	"fmt"
-	"github.com/Makonike/geek-cache/geek/consistenthash"
 	"log"
 	"sync"
+
+	"github.com/Makonike/geek-cache/geek/consistenthash"
 )
 
 // PeerPicker must be implemented to locate the peer that owns a specific key
@@ -31,10 +32,21 @@ func NewClientPicker(self string) *ClientPicker {
 }
 
 // add peer to cluster, create a new Client instance for every peer
-func (s *ClientPicker) Set(peers ...string) {
+func (s *ClientPicker) Set(hash consistenthash.Hash, peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(defaultReplicas, nil)
+	s.consHash = consistenthash.New(consistenthash.HashFunc(hash))
+	s.consHash.Add(peers...)
+	s.clients = make(map[string]*Client, len(peers))
+	for _, peer := range peers {
+		s.clients[peer], _ = NewClient(peer)
+	}
+}
+
+func (s *ClientPicker) SetSimply(peers ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.consHash = consistenthash.New()
 	s.consHash.Add(peers...)
 	s.clients = make(map[string]*Client, len(peers))
 	for _, peer := range peers {
@@ -53,15 +65,32 @@ func (s *ClientPicker) PickPeer(key string) (PeerGetter, bool) {
 	return nil, false
 }
 
-func (s *ClientPicker) SetWithReplicas(replicas int, peers ...string) {
+func (s *ClientPicker) SetWithReplicas(hash consistenthash.Hash, replicas int, peers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.consHash = consistenthash.New(replicas, nil)
+	if s.consHash == nil {
+		s.consHash = consistenthash.New(consistenthash.Replicas(replicas), consistenthash.HashFunc(hash))
+	}
 	s.consHash.Add(peers...)
-	s.clients = make(map[string]*Client, len(peers))
+	if s.clients == nil {
+		s.clients = make(map[string]*Client, len(peers))
+	}
 	for _, peer := range peers {
 		s.clients[peer], _ = NewClient(peer)
 	}
+}
+
+func (s *ClientPicker) SetSinglePeer(hash consistenthash.Hash, replicas int, peer string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.consHash == nil {
+		s.consHash = consistenthash.New(consistenthash.Replicas(replicas), consistenthash.HashFunc(hash))
+	}
+	s.consHash.Add(peer)
+	if s.clients == nil {
+		s.clients = make(map[string]*Client, 1)
+	}
+	s.clients[peer], _ = NewClient(peer)
 }
 
 // Log info

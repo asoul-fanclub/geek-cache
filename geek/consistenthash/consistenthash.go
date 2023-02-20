@@ -11,27 +11,46 @@ import (
 	"strconv"
 )
 
+var (
+	GlobalReplicas  = defaultReplicas
+	defaultHash     = crc32.ChecksumIEEE // default use crc32.ChecksumIEEE as hash func
+	defaultReplicas = 150
+)
+
 type Hash func(data []byte) uint32
 
 type Map struct {
-	hash     Hash           // hash func
+	hash     Hash           // hash func, a kind of datas need to be sure that with the same hash func
 	replicas int            // 虚拟节点倍数
 	keys     []int          // 哈希环，维护有序
 	hashMap  map[int]string // 虚拟节点与真实节点的映射表（key是虚拟节点hash, value is the name of reality node）
 }
 
+type ConsOptions func(*Map)
+
 // New with the replicas number and hash function
-func New(replicas int, fn Hash) *Map {
-	m := &Map{
-		hash:     fn,
-		replicas: replicas,
+func New(opts ...ConsOptions) *Map {
+	m := Map{
+		hash:     defaultHash,
+		replicas: defaultReplicas,
 		hashMap:  make(map[int]string),
 	}
-	// default use crc32.ChecksumIEEE as hash func
-	if m.hash == nil {
-		m.hash = crc32.ChecksumIEEE
+	for _, opt := range opts {
+		opt(&m)
 	}
-	return m
+	return &m
+}
+
+func Replicas(replicas int) ConsOptions {
+	return func(m *Map) {
+		m.replicas = replicas
+	}
+}
+
+func HashFunc(hash Hash) ConsOptions {
+	return func(m *Map) {
+		m.hash = hash
+	}
 }
 
 // Add adds some keys to the hash.

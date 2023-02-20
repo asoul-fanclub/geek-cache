@@ -37,10 +37,12 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 	lock.Lock()
 	defer lock.Unlock()
 	g := &Group{
-		name:      name,
-		getter:    getter,
-		mainCache: cache{cacheBytes: cacheBytes},
-		loader:    &singleflight.Group{},
+		name:   name,
+		getter: getter,
+		mainCache: cache{
+			cacheBytes: cacheBytes,
+		},
+		loader: &singleflight.Group{},
 	}
 	groups[name] = g
 	return g
@@ -111,7 +113,7 @@ func (g *Group) populateCache(key string, value ByteView) {
 	g.mainCache.add(key, value)
 }
 
-// Getter loads data for a key
+// Getter loads data for a key locally
 // call back when a key cache missed
 // impl by user
 type Getter interface {
