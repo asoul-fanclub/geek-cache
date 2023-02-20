@@ -104,8 +104,8 @@ func (g *Group) getLocally(key string) (ByteView, error) {
 		return ByteView{}, fmt.Errorf("date not found")
 	}
 	bw := ByteView{cloneBytes(bytes)}
-	if expirationTime != nil {
-		g.mainCache.addWithExpiration(key, bw, *expirationTime)
+	if expirationTime.UnixNano() != 0 {
+		g.mainCache.addWithExpiration(key, bw, expirationTime)
 	} else {
 		g.mainCache.add(key, bw)
 	}
@@ -116,12 +116,12 @@ func (g *Group) getLocally(key string) (ByteView, error) {
 // call back when a key cache missed
 // impl by user
 type Getter interface {
-	Get(key string) ([]byte, bool, *time.Time)
+	Get(key string) ([]byte, bool, time.Time)
 }
 
-type GetterFunc func(key string) ([]byte, bool, *time.Time)
+type GetterFunc func(key string) ([]byte, bool, time.Time)
 
-func (f GetterFunc) Get(key string) ([]byte, bool, *time.Time) {
+func (f GetterFunc) Get(key string) ([]byte, bool, time.Time) {
 	return f(key)
 }
 

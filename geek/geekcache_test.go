@@ -1,8 +1,10 @@
 package geek
 
 import (
+	"github.com/stretchr/testify/assert"
+	"math/rand"
 	"testing"
-	"time"
+	time "time"
 )
 
 var db = map[string]string{
@@ -15,12 +17,12 @@ var db = map[string]string{
 func TestGroup_Get(t *testing.T) {
 	loads := make(map[string]int)
 	gee := NewGroup("scores", 2<<10, GetterFunc(
-		func(key string) ([]byte, bool, *time.Time) {
+		func(key string) ([]byte, bool, time.Time) {
 			if v, ok := db[key]; ok {
 				loads[key] += 1
-				return []byte(v), true, nil
+				return []byte(v), true, time.Time{}
 			}
-			return nil, false, nil
+			return nil, false, time.Time{}
 		}),
 	)
 	gee1 := GetGroup("scores")
@@ -41,5 +43,39 @@ func TestGroup_Get(t *testing.T) {
 	if view, err := gee.Get("unknown"); err == nil {
 		t.Fatalf("the key unknown but get %v", view)
 	}
+
+}
+
+func TestGroup_SetTimeout(t *testing.T) {
+	a := assert.New(t)
+	var db2 = map[string]string{
+		"Tom":   "630",
+		"Jack":  "742",
+		"Amy":   "601",
+		"Alice": "653",
+	}
+	loads := make(map[string]int)
+	_ = NewGroup("scores", 2<<10, GetterFunc(
+		func(key string) ([]byte, bool, time.Time) {
+			rand.Seed(time.Now().UnixNano())
+			if v, ok := db2[key]; ok {
+				loads[key] += 1
+				// 用户设置超时时间
+				timeout := time.Now().Add(time.Duration(rand.Intn(10)) * time.Second)
+				return []byte(v), true, timeout
+			}
+			return nil, false, time.Time{}
+		}),
+	)
+	// 读取key并校验
+	gee1 := GetGroup("scores")
+	v, _ := gee1.Get("Alice")
+	a.Equal(string(v.B), "653")
+
+	// 过期
+	db2["Alice"] = "123"
+	time.Sleep(10 * time.Second)
+	v2, _ := gee1.Get("Alice")
+	a.Equal(string(v2.B), "123")
 
 }

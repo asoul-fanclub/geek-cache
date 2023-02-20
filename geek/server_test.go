@@ -17,12 +17,12 @@ var server_test_db = map[string]string{
 
 func TestServer(t *testing.T) {
 	g := NewGroup("scores", 2<<10, GetterFunc(
-		func(key string) ([]byte, bool, *time.Time) {
+		func(key string) ([]byte, bool, time.Time) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := server_test_db[key]; ok {
-				return []byte(v), true, nil
+				return []byte(v), true, time.Time{}
 			}
-			return nil, true, nil
+			return nil, true, time.Time{}
 		}))
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	port := 50000 + r.Intn(100)

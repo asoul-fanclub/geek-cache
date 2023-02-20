@@ -18,12 +18,12 @@ func main() {
 		"Tom2": "632",
 	}
 	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
-		func(key string) ([]byte, bool, *time.Time) {
+		func(key string) ([]byte, bool, time.Time) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := mysql[key]; ok {
-				return []byte(v), true, nil
+				return []byte(v), true, time.Time{}
 			}
-			return nil, false, nil
+			return nil, false, time.Time{}
 		}))
 
 	addrMap := map[int]string{
