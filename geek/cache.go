@@ -1,36 +1,46 @@
 package geek
 
 import (
+	c "github.com/Makonike/geek-cache/geek/cache"
 	"sync"
-
-	"github.com/Makonike/geek-cache/geek/lru"
+	"time"
 )
 
-// cache 解决并发控制，实例化lru，封装get和add。
+// cache 实例化lru，封装get和add。
 type cache struct {
-	lock       sync.Mutex
-	lru        *lru.Cache
+	lock       sync.Locker
+	lruCache   c.Cache
 	cacheBytes int64
 }
 
-func (c *cache) add(key string, value ByteView) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	// 懒加载
-	if c.lru == nil {
-		c.lru = lru.New(c.cacheBytes, nil)
-	}
-	c.lru.Add(key, value)
+func (cache *cache) add(key string, value ByteView) {
+	// lazy load
+	cache.lruCacheLazyLoadIfNeed()
+	cache.lruCache.Add(key, value)
 }
 
-func (c *cache) get(key string) (value ByteView, ok bool) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if c.lru == nil {
+func (cache *cache) lruCacheLazyLoadIfNeed() {
+	if cache.lruCache == nil {
+		lock.Lock()
+		defer lock.Unlock()
+		if cache.lruCache == nil {
+			cache.lruCache = c.NewLRUCache(cache.cacheBytes)
+		}
+	}
+}
+
+func (cache *cache) get(key string) (value ByteView, ok bool) {
+	if cache.lruCache == nil {
 		return
 	}
-	if v, find := c.lru.Get(key); find {
+	if v, find := cache.lruCache.Get(key); find {
 		return v.(ByteView), true
 	}
 	return
+}
+
+func (cache *cache) addWithExpiration(key string, value ByteView, expirationTime time.Time) {
+	// lazy load
+	cache.lruCacheLazyLoadIfNeed()
+	cache.lruCache.AddWithExpiration(key, value, expirationTime)
 }
