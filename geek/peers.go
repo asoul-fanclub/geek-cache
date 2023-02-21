@@ -83,6 +83,7 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 	}()
 	// 全量更新
 	go func() {
+		picker.mu.Lock()
 		cli, err := clientv3.New(*registry.GlobalClientConfig)
 		if err != nil {
 			log.Fatal(err)
@@ -95,9 +96,8 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		if err != nil {
 			log.Panic("[Event] full copy request failed")
 		}
-
 		kvs := resp.OpResponse().Get().Kvs
-		picker.mu.Lock()
+		
 		defer picker.mu.Unlock()
 		for _, kv := range kvs {
 			key := string(kv.Key)
