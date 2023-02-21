@@ -58,6 +58,8 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		for {
 			a := <-watchCh
 			go func() {
+				picker.mu.Lock()
+				defer picker.mu.Unlock()
 				for _, x := range a.Events {
 					// x: geek-cache/127.0.0.1:8004
 					key := string(x.Kv.Key)
@@ -66,7 +68,6 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 					if addr == picker.self {
 						continue
 					}
-					picker.mu.Lock()
 					if x.IsCreate() {
 						if _, ok := picker.clients[addr]; !ok {
 							picker.set(addr)
@@ -76,7 +77,6 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 							picker.remove(addr)
 						}
 					}
-					picker.mu.Unlock()
 				}
 			}()
 		}
@@ -97,15 +97,17 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		}
 
 		kvs := resp.OpResponse().Get().Kvs
+		picker.mu.Lock()
+		defer picker.mu.Unlock()
 		for _, kv := range kvs {
 			key := string(kv.Key)
 			idx := strings.Index(key, picker.serviceName)
 			addr := key[idx+len(picker.serviceName)+1:]
-			picker.mu.Lock()
+
 			if _, ok := picker.clients[addr]; !ok {
 				picker.set(addr)
 			}
-			picker.mu.Unlock()
+
 		}
 	}()
 	return &picker
