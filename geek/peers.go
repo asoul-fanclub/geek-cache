@@ -42,9 +42,9 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 	for _, opt := range opts {
 		opt(&picker)
 	}
-	waitFullCh := make(chan struct{})
 	// 增量更新
 	// TODO: watch closed
+	picker.set(picker.self)
 	go func() {
 		cli, err := clientv3.New(*registry.GlobalClientConfig)
 		if err != nil {
@@ -55,8 +55,6 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		// watcher will watch for changes of the service node
 		watcher := clientv3.NewWatcher(cli)
 		watchCh := watcher.Watch(context.Background(), picker.serviceName, clientv3.WithPrefix())
-		// 先全量更新获取完整哈希环
-		<-waitFullCh
 		for {
 			a := <-watchCh
 			go func() {
@@ -73,7 +71,7 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 						if _, ok := picker.clients[addr]; !ok {
 							picker.set(addr)
 						}
-					} else if !x.IsCreate() {
+					} else if x.Type == clientv3.EventTypeDelete {
 						if _, ok := picker.clients[addr]; ok {
 							picker.remove(addr)
 						}
@@ -85,48 +83,29 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 	}()
 	// 全量更新
 	go func() {
-		ticker := time.NewTicker(time.Second * 3)
 		cli, err := clientv3.New(*registry.GlobalClientConfig)
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
 		defer cli.Close()
-		for {
-			go func() {
-				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-				defer cancel()
-				resp, err := cli.Get(ctx, picker.serviceName, clientv3.WithPrefix())
-				if err != nil {
-					log.Panic("[Event] full copy request failed")
-				}
-				kvs := resp.OpResponse().Get().Kvs
-				real := make(map[string]struct{})
-				for _, kv := range kvs {
-					key := string(kv.Key)
-					idx := strings.Index(key, picker.serviceName)
-					addr := key[idx+len(picker.serviceName)+1:]
-					real[addr] = struct{}{}
-					picker.mu.Lock()
-					if _, ok := picker.clients[addr]; !ok {
-						picker.set(addr)
-					}
-					picker.mu.Unlock()
-				}
-				picker.mu.Lock()
-				// remove
-				for k := range picker.clients {
-					if _, ok := real[k]; !ok {
-						picker.remove(k)
-					}
-				}
-				picker.mu.Unlock()
-			}()
-			<-ticker.C
-			select {
-			case waitFullCh <- struct{}{}:
-			default:
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		resp, err := cli.Get(ctx, picker.serviceName, clientv3.WithPrefix())
+		if err != nil {
+			log.Panic("[Event] full copy request failed")
+		}
+
+		kvs := resp.OpResponse().Get().Kvs
+		for _, kv := range kvs {
+			key := string(kv.Key)
+			idx := strings.Index(key, picker.serviceName)
+			addr := key[idx+len(picker.serviceName)+1:]
+			picker.mu.Lock()
+			if _, ok := picker.clients[addr]; !ok {
+				picker.set(addr)
 			}
+			picker.mu.Unlock()
 		}
 	}()
 	return &picker
