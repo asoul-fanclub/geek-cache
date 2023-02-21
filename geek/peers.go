@@ -55,7 +55,7 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		// watcher will watch for changes of the service node
 		watcher := clientv3.NewWatcher(cli)
 		watchCh := watcher.Watch(context.Background(), picker.serviceName, clientv3.WithPrefix())
-		// 先增量更新获取完整哈希环
+		// 先全量更新获取完整哈希环
 		<-waitFullCh
 		for {
 			a := <-watchCh
@@ -93,7 +93,6 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		}
 		defer cli.Close()
 		for {
-			<-ticker.C
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 				defer cancel()
@@ -114,16 +113,20 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 					}
 					picker.mu.Unlock()
 				}
+				picker.mu.Lock()
 				// remove
 				for k := range picker.clients {
-					picker.mu.Lock()
 					if _, ok := real[k]; !ok {
 						picker.remove(k)
 					}
-					picker.mu.Unlock()
 				}
-				waitFullCh <- struct{}{}
+				picker.mu.Unlock()
 			}()
+			<-ticker.C
+			select {
+			case waitFullCh <- struct{}{}:
+			default:
+			}
 		}
 	}()
 	return &picker
