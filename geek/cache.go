@@ -1,14 +1,15 @@
 package geek
 
 import (
-	c "github.com/Makonike/geek-cache/geek/cache"
 	"sync"
 	"time"
+
+	c "github.com/Makonike/geek-cache/geek/cache"
 )
 
 // cache 实例化lru，封装get和add。
 type cache struct {
-	lock       sync.Locker
+	lock       sync.RWMutex
 	lruCache   c.Cache
 	cacheBytes int64
 }
@@ -21,8 +22,8 @@ func (cache *cache) add(key string, value ByteView) {
 
 func (cache *cache) lruCacheLazyLoadIfNeed() {
 	if cache.lruCache == nil {
-		lock.Lock()
-		defer lock.Unlock()
+		cache.lock.Lock()
+		defer cache.lock.Unlock()
 		if cache.lruCache == nil {
 			cache.lruCache = c.NewLRUCache(cache.cacheBytes)
 		}
@@ -30,6 +31,8 @@ func (cache *cache) lruCacheLazyLoadIfNeed() {
 }
 
 func (cache *cache) get(key string) (value ByteView, ok bool) {
+	cache.lock.RLock()
+	defer cache.lock.RUnlock()
 	if cache.lruCache == nil {
 		return
 	}

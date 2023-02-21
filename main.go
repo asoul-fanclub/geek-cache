@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/Makonike/geek-cache/geek"
@@ -29,26 +30,14 @@ func main() {
 			return nil, false, time.Time{}
 		}))
 
-	addrMap := map[int]string{
-		8001: "8001",
-		8002: "8002",
-		8003: "8003",
-	}
-	var addr string = "127.0.0.1:" + addrMap[port]
+	var addr string = "127.0.0.1:" + strconv.Itoa(port)
 
 	server, err := geek.NewServer(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	addrs := make([]string, 0)
-	for _, addr := range addrMap {
-		addrs = append(addrs, "127.0.0.1:"+addr)
-	}
-
-	// set client address
 	picker := geek.NewClientPicker(addr)
-	picker.SetSimply(addrs...)
 	g.RegisterPeers(picker)
 
 	for {
