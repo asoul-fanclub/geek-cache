@@ -28,7 +28,7 @@ server, err := geek.NewServer(addr, geek.ServiceName("your-service-name"))
 
 ```go
 registry.GlobalClientConfig = &clientv3.Config{
-	Endpoints:   []string{"localhost:2379"}, // etcd address
+	Endpoints:   []string{"127.0.0.1:2379"}, // etcd address
 	DialTimeout: 5 * time.Second, // the timeout for failing to establish a connection
 }
 ```
@@ -120,7 +120,7 @@ go build -o server
 ./server -port=8002 &
 ./server -port=8003 &
 
-sleep 6
+sleep 3
 echo ">>> start test"
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8001 pb.GroupCache/Get 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8001 pb.GroupCache/Get 
@@ -134,7 +134,7 @@ grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8003 pb.Grou
 
 kill -9 `lsof -ti:8002`;
 
-sleep 6
+sleep 3
 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8001 pb.GroupCache/Get 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.GroupCache/Get 
@@ -233,11 +233,11 @@ Golang+grpc+etcd
 - 使用protobuf进行节点间通信，编码报文，提高效率
 - 构造虚拟节点使得请求映射负载均衡
 - 使用LRU缓存淘汰算法解决资源限制的问题
+- 使用etcd服务发现动态更新哈希环
 - 支持并发读
 
 ## TODO List
 
 - 添加多种缓存淘汰策略
-- 服务发现节点
-- 持久化
+
 - 支持多协议通信
