@@ -102,16 +102,25 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 					log.Panic("[Event] full copy request failed")
 				}
 				kvs := resp.OpResponse().Get().Kvs
+				real := make(map[string]struct{})
 				for _, kv := range kvs {
 					key := string(kv.Key)
 					idx := strings.Index(key, picker.serviceName)
 					addr := key[idx+len(picker.serviceName)+1:]
+					real[addr] = struct{}{}
 					picker.mu.Lock()
 					if _, ok := picker.clients[addr]; !ok {
 						picker.set(addr)
 					}
 					picker.mu.Unlock()
-					// TODO: remove
+				}
+				// remove
+				for k := range picker.clients {
+					picker.mu.Lock()
+					if _, ok := real[k]; !ok {
+						picker.remove(k)
+					}
+					picker.mu.Unlock()
 				}
 				waitFullCh <- struct{}{}
 			}()
