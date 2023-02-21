@@ -44,6 +44,7 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 	}
 	waitFullCh := make(chan struct{})
 	// 增量更新
+	// TODO: watch closed
 	go func() {
 		cli, err := clientv3.New(*registry.GlobalClientConfig)
 		if err != nil {
@@ -57,44 +58,62 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		// 先增量更新获取完整哈希环
 		<-waitFullCh
 		for {
-			// TODO: catch self
 			a := <-watchCh
 			go func() {
-				picker.mu.Lock()
-				defer picker.mu.Unlock()
 				for _, x := range a.Events {
 					// x: geek-cache/127.0.0.1:8004
 					key := string(x.Kv.Key)
 					idx := strings.Index(key, picker.serviceName)
 					addr := key[idx+len(picker.serviceName)+1:]
-					fmt.Printf("x: %v\n", addr)
-					if x.IsCreate() {
-						if _, ok := picker.clients[addr]; ok {
-							log.Panicf("[Event] discovered node %v already exists\n", addr)
-						}
-						picker.consHash.Add(addr)
-						picker.clients[addr], _ = NewClient(addr, picker.serviceName)
-					} else if !x.IsCreate() {
-						if _, ok := picker.clients[addr]; !ok {
-							log.Panicf("[Event] discovered node %v not exists\n", addr)
-						}
-						picker.consHash.Remove(addr)
-						delete(picker.clients, addr)
+					if addr == picker.self {
+						continue
 					}
+					picker.mu.Lock()
+					if x.IsCreate() {
+						if _, ok := picker.clients[addr]; !ok {
+							picker.set(addr)
+						}
+					} else if !x.IsCreate() {
+						if _, ok := picker.clients[addr]; ok {
+							picker.remove(addr)
+						}
+					}
+					picker.mu.Unlock()
 				}
 			}()
 		}
 	}()
 	// 全量更新
 	go func() {
-		ticker := time.NewTicker(time.Second * 5)
+		ticker := time.NewTicker(time.Second * 3)
+		cli, err := clientv3.New(*registry.GlobalClientConfig)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		defer cli.Close()
 		for {
 			<-ticker.C
 			go func() {
-				picker.mu.Lock()
-				defer picker.mu.Unlock()
-				// TODO: get full
-				<-waitFullCh
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				defer cancel()
+				resp, err := cli.Get(ctx, picker.serviceName, clientv3.WithPrefix())
+				if err != nil {
+					log.Panic("[Event] full copy request failed")
+				}
+				kvs := resp.OpResponse().Get().Kvs
+				for _, kv := range kvs {
+					key := string(kv.Key)
+					idx := strings.Index(key, picker.serviceName)
+					addr := key[idx+len(picker.serviceName)+1:]
+					picker.mu.Lock()
+					if _, ok := picker.clients[addr]; !ok {
+						picker.set(addr)
+					}
+					picker.mu.Unlock()
+					// TODO: remove
+				}
+				waitFullCh <- struct{}{}
 			}()
 		}
 	}()
@@ -107,6 +126,16 @@ func PickerServiceName(serviceName string) PickerOptions {
 	return func(picker *ClientPicker) {
 		picker.serviceName = serviceName
 	}
+}
+
+func (p *ClientPicker) set(addr string) {
+	p.consHash.Add(addr)
+	p.clients[addr], _ = NewClient(addr, p.serviceName)
+}
+
+func (p *ClientPicker) remove(addr string) {
+	p.consHash.Remove(addr)
+	delete(p.clients, addr)
 }
 
 // PickPeer pick a peer with the consistenthash algorithm

@@ -120,9 +120,8 @@ go build -o server
 ./server -port=8002 &
 ./server -port=8003 &
 
-sleep 2
+sleep 6
 echo ">>> start test"
-
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8001 pb.GroupCache/Get 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8001 pb.GroupCache/Get 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8001 pb.GroupCache/Get 
@@ -133,6 +132,13 @@ grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.Group
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8003 pb.GroupCache/Get 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8003 pb.GroupCache/Get 
 
+kill -9 `lsof -ti:8002`;
+
+sleep 6
+
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8001 pb.GroupCache/Get 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.GroupCache/Get 
+
 wait
 ```
 
@@ -140,66 +146,79 @@ Running the shell, then you can see the results following.
 
 ```bash
 $ ./a.sh 
-2023/02/20 10:25:06 [127.0.0.1:8001] register service success
-2023/02/20 10:25:06 [127.0.0.1:8003] register service success
-2023/02/20 10:25:06 [127.0.0.1:8002] register service success
+2023/02/21 10:33:04 [127.0.0.1:8002] register service success
+2023/02/21 10:33:04 [127.0.0.1:8003] register service success
+2023/02/21 10:33:04 [127.0.0.1:8001] register service success
 >>> start test
-2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
-2023/02/20 10:25:08 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8002
-2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/20 10:25:08 [SlowDB] search key Tom
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:10 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8002
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:10 [SlowDB] search key Tom
 {
   "value": "NjMw"
 }
-2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom1)
-2023/02/20 10:25:08 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
-2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/20 10:25:08 [SlowDB] search key Tom1
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom1)
+2023/02/21 10:33:10 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
+2023/02/21 10:33:10 [SlowDB] search key Tom1
 {
   "value": "NjMx"
 }
-2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom2)
-2023/02/20 10:25:08 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
-2023/02/20 10:25:08 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/20 10:25:08 [SlowDB] search key Tom2
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom2)
+2023/02/21 10:33:10 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
+2023/02/21 10:33:10 [SlowDB] search key Tom2
 {
   "value": "NjMy"
 }
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/20 10:25:09 [Geek-Cache] hit
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:10 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom1)
-2023/02/20 10:25:09 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/20 10:25:09 [Geek-Cache] hit
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom1)
+2023/02/21 10:33:10 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
+2023/02/21 10:33:10 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom2)
-2023/02/20 10:25:09 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/20 10:25:09 [Geek-Cache] hit
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom2)
+2023/02/21 10:33:10 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
+2023/02/21 10:33:10 [Geek-Cache] hit
 {
   "value": "NjMy"
 }
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
-2023/02/20 10:25:09 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8002
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/20 10:25:09 [Geek-Cache] hit
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:10 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8002
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:10 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/20 10:25:09 [Geek-Cache] hit
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
+2023/02/21 10:33:10 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
-2023/02/20 10:25:09 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/20 10:25:09 [Geek-Cache] hit
+2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
+2023/02/21 10:33:10 [Geek-Cache] hit
 {
   "value": "NjMy"
+}
+./a.sh：行 23: 36214 已杀死               ./server -port=8002
+2023/02/21 10:33:16 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:16 [SlowDB] search key Tom
+{
+  "value": "NjMw"
+}
+2023/02/21 10:33:16 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:16 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8001
+2023/02/21 10:33:16 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
+2023/02/21 10:33:16 [Geek-Cache] hit
+{
+  "value": "NjMw"
 }
 ```
 
