@@ -121,7 +121,7 @@ func PickerServiceName(serviceName string) PickerOptions {
 
 func (p *ClientPicker) set(addr string) {
 	p.consHash.Add(addr)
-	p.clients[addr], _ = NewClient(addr, p.serviceName)
+	p.clients[addr] = NewClient(addr, p.serviceName)
 }
 
 func (p *ClientPicker) remove(addr string) {
