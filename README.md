@@ -36,7 +36,13 @@ registry.GlobalClientConfig = &clientv3.Config{
 - picker
 
 ```go
-picker := geek.NewClientPicker(addr, geek.PickerServiceName("geek-cache"))
+picker := geek.NewClientPicker(addr, geek.PickerServiceName("geek-cache"), geek.Hash(consistenthash.HashFunc(crc32.ChecksumIEEE)))
+```
+
+- Consistent Hash
+```go
+consistenthash.GlobalReplicas = 150
+// hash function set in geek.NewClientPicker
 ```
 
 ## Test
