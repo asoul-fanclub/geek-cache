@@ -39,9 +39,11 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		mu:          sync.RWMutex{},
 		consHash:    consistenthash.New(),
 	}
+	picker.mu.Lock()
 	for _, opt := range opts {
 		opt(&picker)
 	}
+	picker.mu.Unlock()
 	// 增量更新
 	// TODO: watch closed
 	picker.set(picker.self)
@@ -121,9 +123,9 @@ func PickerServiceName(serviceName string) PickerOptions {
 	}
 }
 
-func Hash(hash consistenthash.ConsOptions) PickerOptions {
+func ConsHashOptions(opts ...consistenthash.ConsOptions) PickerOptions {
 	return func(picker *ClientPicker) {
-		picker.consHash = consistenthash.New()
+		picker.consHash = consistenthash.New(opts...)
 	}
 }
 

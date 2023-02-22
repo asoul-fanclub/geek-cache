@@ -2,11 +2,13 @@ package main
 
 import (
 	"flag"
+	"hash/crc32"
 	"log"
 	"strconv"
 	"time"
 
 	"github.com/Makonike/geek-cache/geek"
+	"github.com/Makonike/geek-cache/geek/consistenthash"
 )
 
 func main() {
