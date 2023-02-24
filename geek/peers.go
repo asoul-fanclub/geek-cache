@@ -39,9 +39,11 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 		mu:          sync.RWMutex{},
 		consHash:    consistenthash.New(),
 	}
+	picker.mu.Lock()
 	for _, opt := range opts {
 		opt(&picker)
 	}
+	picker.mu.Unlock()
 	// 增量更新
 	// TODO: watch closed
 	picker.set(picker.self)
@@ -97,7 +99,7 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 			log.Panic("[Event] full copy request failed")
 		}
 		kvs := resp.OpResponse().Get().Kvs
-		
+
 		defer picker.mu.Unlock()
 		for _, kv := range kvs {
 			key := string(kv.Key)
@@ -118,6 +120,12 @@ type PickerOptions func(*ClientPicker)
 func PickerServiceName(serviceName string) PickerOptions {
 	return func(picker *ClientPicker) {
 		picker.serviceName = serviceName
+	}
+}
+
+func ConsHashOptions(opts ...consistenthash.ConsOptions) PickerOptions {
+	return func(picker *ClientPicker) {
+		picker.consHash = consistenthash.New(opts...)
 	}
 }
 

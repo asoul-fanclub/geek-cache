@@ -24,7 +24,7 @@ func NewServer(self string, opts ...ServerOptions) (*Server, error)
 server, err := geek.NewServer(addr, geek.ServiceName("your-service-name"))
 ```
 
-- client
+- Client
 
 ```go
 registry.GlobalClientConfig = &clientv3.Config{
@@ -33,10 +33,10 @@ registry.GlobalClientConfig = &clientv3.Config{
 }
 ```
 
-- picker
+- Picker and Consistent Hash
 
 ```go
-picker := geek.NewClientPicker(addr, geek.PickerServiceName("geek-cache"))
+picker := geek.NewClientPicker(addr, geek.PickerServiceName("geek-cache"), geek.ConsHashOptions(consistenthash.HashFunc(crc32.ChecksumIEEE), consistenthash.Replicas(150)))
 ```
 
 ## Test
