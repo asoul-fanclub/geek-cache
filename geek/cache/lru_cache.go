@@ -55,14 +55,14 @@ func (c *lruCache) Get(key string) (Value, bool) {
 	// check for expiration
 	expirationTime, ok := c.expires[key]
 	if ok && expirationTime.Before(time.Now()) {
-		c.nbytes -= int64(c.cacheMap[key].Value.(*entry).value.Len())
-		value := c.cacheMap[key].Value.(*entry).value
+		v := c.cacheMap[key].Value.(*entry)
+		c.nbytes -= int64(v.value.Len() + len(v.key))
 		c.ll.Remove(c.cacheMap[key])
 		delete(c.cacheMap, key)
 		delete(c.expires, key)
 		// rollback
 		if c.OnEvicted != nil {
-			c.OnEvicted(key, value)
+			c.OnEvicted(key, v.value)
 		}
 		return nil, false
 	}
@@ -78,15 +78,8 @@ func (c *lruCache) Get(key string) (Value, bool) {
 func (c *lruCache) Add(key string, value Value) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	// Check whether the key already exists
-	if _, ok := c.cacheMap[key]; ok {
-		c.nbytes += int64(value.Len() - c.cacheMap[key].Value.(*entry).value.Len())
-		c.cacheMap[key].Value = &entry{key, value}
-		delete(c.expires, key)
-	} else {
-		c.nbytes += int64(len(key) + value.Len())
-		c.cacheMap[key] = c.ll.PushBack(&entry{key, value})
-	}
+	c.baseAdd(key, value)
+	delete(c.expires, key)
 	c.freeMemoryIfNeeded()
 }
 
@@ -94,16 +87,23 @@ func (c *lruCache) Add(key string, value Value) {
 func (c *lruCache) AddWithExpiration(key string, value Value, expirationTime time.Time) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+	c.baseAdd(key, value)
+	c.expires[key] = expirationTime
+	c.freeMemoryIfNeeded()
+}
+
+func (c *lruCache) baseAdd(key string, value Value) {
 	// Check whether the key already exists
 	if _, ok := c.cacheMap[key]; ok {
 		c.nbytes += int64(value.Len() - c.cacheMap[key].Value.(*entry).value.Len())
+		// update value
+		c.cacheMap[key].Value = &entry{key, value}
+		// popular
+		c.ll.MoveToBack(c.cacheMap[key])
 	} else {
 		c.nbytes += int64(len(key) + value.Len())
+		c.cacheMap[key] = c.ll.PushBack(&entry{key, value})
 	}
-	c.cacheMap[key] = c.ll.PushBack(&entry{key, value})
-	c.expires[key] = expirationTime
-
-	c.freeMemoryIfNeeded()
 }
 
 // lockless !!! free Memory when the memory is insufficient
