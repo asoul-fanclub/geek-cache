@@ -74,10 +74,12 @@ func (g *Group) load(key string) (ByteView, error) {
 						log.Println("[Geek-Cache] hit")
 						return v, nil
 					}
-				} else if value, err := g.getFromPeer(peer, key); err == nil {
-					return value, nil
 				} else {
-					log.Println("[Geek-Cache] Failed to get from peer", err)
+					if value, err := g.getFromPeer(peer, key); err == nil {
+						return value, nil
+					} else {
+						log.Println("[Geek-Cache] Failed to get from peer", err)
+					}
 				}
 			}
 		}
