@@ -15,7 +15,7 @@ import (
 
 // PeerPicker must be implemented to locate the peer that owns a specific key
 type PeerPicker interface {
-	PickPeer(key string) (peer PeerGetter, ok bool)
+	PickPeer(key string) (peer PeerGetter, ok bool, isSelf bool)
 }
 
 // PeerGetter must be implemented by a peer
@@ -140,14 +140,14 @@ func (p *ClientPicker) remove(addr string) {
 }
 
 // PickPeer pick a peer with the consistenthash algorithm
-func (s *ClientPicker) PickPeer(key string) (PeerGetter, bool) {
+func (s *ClientPicker) PickPeer(key string) (PeerGetter, bool, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	if peer := s.consHash.Get(key); peer != "" && peer != s.self {
+	if peer := s.consHash.Get(key); peer != "" {
 		s.Log("Pick peer %s", peer)
-		return s.clients[peer], true
+		return s.clients[peer], true, peer == s.self
 	}
-	return nil, false
+	return nil, false, false
 }
 
 // Log info
