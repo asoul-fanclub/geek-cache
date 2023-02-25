@@ -38,12 +38,10 @@ func NewLRUCache(maxSize int64) *lruCache {
 		maxBytes: maxSize,
 	}
 	go func() {
-		ticker := time.Tick(1 * time.Hour)
-		for {
-			select {
-			case <-ticker:
-				answer.periodicMemoryClean()
-			}
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for range ticker.C {
+			answer.periodicMemoryClean()
 		}
 	}()
 	return &answer
