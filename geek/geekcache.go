@@ -60,11 +60,6 @@ func (g *Group) Get(key string) (ByteView, error) {
 	if key == "" {
 		return ByteView{}, fmt.Errorf("key is required")
 	}
-
-	if v, ok := g.mainCache.get(key); ok {
-		log.Println("[Geek-Cache] hit")
-		return v, nil
-	}
 	return g.load(key)
 }
 
@@ -73,11 +68,18 @@ func (g *Group) load(key string) (ByteView, error) {
 	// make sure requests for the key only execute once in concurrent condition
 	v, err := g.loader.Do(key, func() (interface{}, error) {
 		if g.peers != nil {
-			if peer, ok := g.peers.PickPeer(key); ok {
-				if value, err := g.getFromPeer(peer, key); err == nil {
-					return value, nil
+			if peer, ok, isSelf := g.peers.PickPeer(key); ok {
+				if isSelf {
+					if v, ok := g.mainCache.get(key); ok {
+						log.Println("[Geek-Cache] hit")
+						return v, nil
+					}
 				} else {
-					log.Println("[Geek-Cache] Failed to get from peer", err)
+					if value, err := g.getFromPeer(peer, key); err == nil {
+						return value, nil
+					} else {
+						log.Println("[Geek-Cache] Failed to get from peer", err)
+					}
 				}
 			}
 		}
@@ -101,6 +103,11 @@ func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 }
 
 func (g *Group) getLocally(key string) (ByteView, error) {
+	// have a try again
+	if v, ok := g.mainCache.get(key); ok {
+		log.Println("[Geek-Cache] hit")
+		return v, nil
+	}
 	bytes, f, expirationTime := g.getter.Get(key)
 	if !f {
 		return ByteView{}, fmt.Errorf("data not found")
