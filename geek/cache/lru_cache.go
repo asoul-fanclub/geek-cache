@@ -10,6 +10,11 @@ type Cache interface {
 	Get(key string) (Value, bool)
 	AddWithExpiration(key string, value Value, expirationTime time.Time)
 	Add(key string, value Value)
+	Delete(key string)
+}
+
+type Value interface {
+	Len() int // return data size
 }
 
 // cache struct
@@ -90,10 +95,19 @@ func (c *lruCache) AddWithExpiration(key string, value Value, expirationTime tim
 	c.freeMemoryIfNeeded()
 }
 
+// delete a key-value by key
+func (c *lruCache) Delete(key string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.nbytes -= int64(len(key) + c.getValueSizeByKey(key))
+	delete(c.cacheMap, key)
+	delete(c.expires, key)
+}
+
 func (c *lruCache) baseAdd(key string, value Value) {
 	// Check whether the key already exists
 	if _, ok := c.cacheMap[key]; ok {
-		c.nbytes += int64(value.Len() - c.cacheMap[key].Value.(*entry).value.Len())
+		c.nbytes += int64(value.Len() - c.getValueSizeByKey(key))
 		// update value
 		c.cacheMap[key].Value = &entry{key, value}
 		// popular
@@ -130,7 +144,7 @@ func (c *lruCache) periodicMemoryClean() {
 	for key := range c.expires {
 		// check for expiration
 		if c.expires[key].Before(time.Now()) {
-			c.nbytes -= int64(len(key) + c.cacheMap[key].Value.(*entry).value.Len())
+			c.nbytes -= int64(len(key) + c.getValueSizeByKey(key))
 			delete(c.expires, key)
 			delete(c.cacheMap, key)
 		}
@@ -141,6 +155,6 @@ func (c *lruCache) periodicMemoryClean() {
 	}
 }
 
-type Value interface {
-	Len() int // return data size
+func (c *lruCache) getValueSizeByKey(key string) int {
+	return c.cacheMap[key].Value.(*entry).value.Len()
 }
