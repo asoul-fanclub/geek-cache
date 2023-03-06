@@ -8,9 +8,9 @@ import (
 
 type Cache interface {
 	Get(key string) (Value, bool)
-	AddWithExpiration(key string, value Value, expirationTime time.Time)
 	Add(key string, value Value)
-	Delete(key string)
+	AddWithExpiration(key string, value Value, expirationTime time.Time)
+	Delete(key string) bool
 }
 
 type Value interface {
@@ -96,12 +96,13 @@ func (c *lruCache) AddWithExpiration(key string, value Value, expirationTime tim
 }
 
 // delete a key-value by key
-func (c *lruCache) Delete(key string) {
+func (c *lruCache) Delete(key string) bool {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	c.nbytes -= int64(len(key) + c.getValueSizeByKey(key))
 	delete(c.cacheMap, key)
 	delete(c.expires, key)
+	return true
 }
 
 func (c *lruCache) baseAdd(key string, value Value) {

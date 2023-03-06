@@ -100,6 +100,23 @@ func TestCache_AddWithExpiration(t *testing.T) {
 	a.False(f)
 }
 
+// 测试删除
+func TestCache_Delete(t *testing.T) {
+	a := assert.New(t)
+	cache := NewLRUCache(100)
+	cache.Add("1", &testValue{"123456789"})
+	cache.Add("2", &testValue{"123456789"})
+	_, f1 := cache.Get("1")
+	_, f2 := cache.Get("2")
+	a.True(f1)
+	a.True(f2)
+	cache.Delete("1")
+	_, f3 := cache.Get("1")
+	_, f4 := cache.Get("2")
+	a.False(f3)
+	a.True(f4)
+}
+
 // ByteView 只读的字节视图，用于缓存数据
 type testValue struct {
 	b string
