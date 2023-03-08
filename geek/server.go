@@ -62,7 +62,7 @@ func (s *Server) Log(format string, path ...interface{}) {
 func (s *Server) Get(ctx context.Context, in *pb.Request) (*pb.ResponseForGet, error) {
 	group, key := in.GetGroup(), in.GetKey()
 	out := &pb.ResponseForGet{}
-	log.Printf("[Geek-Cache %s] Recv RPC Request - (%s)/(%s)", s.self, group, key)
+	log.Printf("[Geek-Cache %s] Recv RPC Request for get- (%s)/(%s)", s.self, group, key)
 
 	if key == "" {
 		return out, fmt.Errorf("key required")
@@ -82,7 +82,7 @@ func (s *Server) Get(ctx context.Context, in *pb.Request) (*pb.ResponseForGet, e
 func (s *Server) Delete(ctx context.Context, in *pb.Request) (*pb.ResponseForDelete, error) {
 	group, key := in.GetGroup(), in.GetKey()
 	out := &pb.ResponseForDelete{}
-	log.Printf("[Geek-Cache %s] Recv RPC Request - (%s)/(%s)", s.self, group, key)
+	log.Printf("[Geek-Cache %s] Recv RPC Request for delete - (%s)/(%s)", s.self, group, key)
 
 	if key == "" {
 		return out, fmt.Errorf("key required")

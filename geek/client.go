@@ -80,7 +80,7 @@ func (c *Client) Delete(group string, key string) (bool, error) {
 		Key:   key,
 	})
 	if err != nil {
-		return false, fmt.Errorf("could not get %s-%s from peer %s", group, key, c.addr)
+		return false, fmt.Errorf("could not delete %s-%s from peer %s", group, key, c.addr)
 	}
 	return resp.GetValue(), nil
 }
