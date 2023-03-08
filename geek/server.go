@@ -91,7 +91,10 @@ func (s *Server) Delete(ctx context.Context, in *pb.Request) (*pb.ResponseForDel
 	if g == nil {
 		return out, fmt.Errorf("group not found")
 	}
-	isSuccess := g.Delete(key)
+	isSuccess, err := g.Delete(key)
+	if err != nil {
+		return out, err
+	}
 	out.Value = isSuccess
 	return out, nil
 }
