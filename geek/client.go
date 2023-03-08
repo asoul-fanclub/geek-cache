@@ -28,7 +28,6 @@ func NewClient(addr, serviceName string) *Client {
 // and return the result
 func (c *Client) Get(group, key string) ([]byte, error) {
 	cli, err := clientv3.New(*registry.GlobalClientConfig)
-
 	if err != nil {
 		log.Fatal(err)
 		return nil, err

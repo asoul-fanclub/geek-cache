@@ -22,7 +22,7 @@ type lruCache struct {
 	lock      sync.Mutex
 	cacheMap  map[string]*list.Element      // map cache
 	expires   map[string]time.Time          // The expiration time of key
-	ll        *list.List                    // 双向链表
+	ll        *list.List                    // linked list
 	OnEvicted func(key string, value Value) // The callback function when a record is deleted
 	maxBytes  int64                         // The maximum memory allowed
 	nbytes    int64                         // The memory is currently in use

@@ -44,7 +44,40 @@ func TestGroup_Get(t *testing.T) {
 	if view, err := gee.Get("unknown"); err == nil {
 		t.Fatalf("the key unknown but get %v", view)
 	}
+}
 
+func TestGroup_Delete(t *testing.T) {
+	a := assert.New(t)
+	database := map[string]string{
+		"Tom":   "630",
+		"Jack":  "742",
+		"Amy":   "601",
+		"Alice": "653",
+	}
+	loads := make(map[string]int)
+	NewGroup("scores", 2<<10, GetterFunc(
+		func(key string) ([]byte, bool, time.Time) {
+			if v, ok := database[key]; ok {
+				loads[key] += 1
+				return []byte(v), true, time.Time{}
+			}
+			return nil, false, time.Time{}
+		}),
+	)
+	gee := GetGroup("scores")
+	for k, v := range database {
+		view, err := gee.Get(k)
+		a.Equal(view.String(), v)
+		a.Nil(err)
+		// delete
+		s, err2 := gee.Delete(k)
+		a.True(s)
+		a.Nil(err2)
+		// Get it again
+		_, _ = gee.Get(k)
+		// check the number of loads
+		a.Equal(2, loads[k])
+	}
 }
 
 func TestGroup_SetTimeout(t *testing.T) {
