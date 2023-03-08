@@ -28,7 +28,6 @@ func NewClient(addr, serviceName string) *Client {
 // and return the result
 func (c *Client) Get(group, key string) ([]byte, error) {
 	cli, err := clientv3.New(*registry.GlobalClientConfig)
-
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -51,6 +50,37 @@ func (c *Client) Get(group, key string) ([]byte, error) {
 	})
 	if err != nil {
 		return nil, fmt.Errorf("could not get %s-%s from peer %s", group, key, c.addr)
+	}
+	return resp.GetValue(), nil
+}
+
+// Delete send the url for getting specific group and key,
+// and return the result
+func (c *Client) Delete(group string, key string) (bool, error) {
+	cli, err := clientv3.New(*registry.GlobalClientConfig)
+
+	if err != nil {
+		log.Fatal(err)
+		return false, err
+	}
+	defer cli.Close()
+
+	conn, err := registry.EtcdDial(cli, c.serviceName, c.addr)
+	if err != nil {
+		return false, err
+	}
+	defer conn.Close()
+
+	grpcCLient := pb.NewGroupCacheClient(conn)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	resp, err := grpcCLient.Delete(ctx, &pb.Request{
+		Group: group,
+		Key:   key,
+	})
+	if err != nil {
+		return false, fmt.Errorf("could not delete %s-%s from peer %s", group, key, c.addr)
 	}
 	return resp.GetValue(), nil
 }

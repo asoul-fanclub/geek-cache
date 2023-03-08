@@ -8,8 +8,13 @@ import (
 
 type Cache interface {
 	Get(key string) (Value, bool)
-	AddWithExpiration(key string, value Value, expirationTime time.Time)
 	Add(key string, value Value)
+	AddWithExpiration(key string, value Value, expirationTime time.Time)
+	Delete(key string) bool
+}
+
+type Value interface {
+	Len() int // return data size
 }
 
 // cache struct
@@ -17,7 +22,7 @@ type lruCache struct {
 	lock      sync.Mutex
 	cacheMap  map[string]*list.Element      // map cache
 	expires   map[string]time.Time          // The expiration time of key
-	ll        *list.List                    // 双向链表
+	ll        *list.List                    // linked list
 	OnEvicted func(key string, value Value) // The callback function when a record is deleted
 	maxBytes  int64                         // The maximum memory allowed
 	nbytes    int64                         // The memory is currently in use
@@ -90,10 +95,20 @@ func (c *lruCache) AddWithExpiration(key string, value Value, expirationTime tim
 	c.freeMemoryIfNeeded()
 }
 
+// delete a key-value by key
+func (c *lruCache) Delete(key string) bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.nbytes -= int64(len(key) + c.getValueSizeByKey(key))
+	delete(c.cacheMap, key)
+	delete(c.expires, key)
+	return true
+}
+
 func (c *lruCache) baseAdd(key string, value Value) {
 	// Check whether the key already exists
 	if _, ok := c.cacheMap[key]; ok {
-		c.nbytes += int64(value.Len() - c.cacheMap[key].Value.(*entry).value.Len())
+		c.nbytes += int64(value.Len() - c.getValueSizeByKey(key))
 		// update value
 		c.cacheMap[key].Value = &entry{key, value}
 		// popular
@@ -130,7 +145,7 @@ func (c *lruCache) periodicMemoryClean() {
 	for key := range c.expires {
 		// check for expiration
 		if c.expires[key].Before(time.Now()) {
-			c.nbytes -= int64(len(key) + c.cacheMap[key].Value.(*entry).value.Len())
+			c.nbytes -= int64(len(key) + c.getValueSizeByKey(key))
 			delete(c.expires, key)
 			delete(c.cacheMap, key)
 		}
@@ -141,6 +156,6 @@ func (c *lruCache) periodicMemoryClean() {
 	}
 }
 
-type Value interface {
-	Len() int // return data size
+func (c *lruCache) getValueSizeByKey(key string) int {
+	return c.cacheMap[key].Value.(*entry).value.Len()
 }

@@ -59,10 +59,10 @@ func (s *Server) Log(format string, path ...interface{}) {
 	log.Printf("[Server %s] %s", s.self, fmt.Sprintf(format, path...))
 }
 
-func (s *Server) Get(ctx context.Context, in *pb.Request) (*pb.Response, error) {
+func (s *Server) Get(ctx context.Context, in *pb.Request) (*pb.ResponseForGet, error) {
 	group, key := in.GetGroup(), in.GetKey()
-	out := &pb.Response{}
-	log.Printf("[Geek-Cache %s] Recv RPC Request - (%s)/(%s)", s.self, group, key)
+	out := &pb.ResponseForGet{}
+	log.Printf("[Geek-Cache %s] Recv RPC Request for get- (%s)/(%s)", s.self, group, key)
 
 	if key == "" {
 		return out, fmt.Errorf("key required")
@@ -76,6 +76,26 @@ func (s *Server) Get(ctx context.Context, in *pb.Request) (*pb.Response, error) 
 		return out, err
 	}
 	out.Value = view.ByteSLice()
+	return out, nil
+}
+
+func (s *Server) Delete(ctx context.Context, in *pb.Request) (*pb.ResponseForDelete, error) {
+	group, key := in.GetGroup(), in.GetKey()
+	out := &pb.ResponseForDelete{}
+	log.Printf("[Geek-Cache %s] Recv RPC Request for delete - (%s)/(%s)", s.self, group, key)
+
+	if key == "" {
+		return out, fmt.Errorf("key required")
+	}
+	g := GetGroup(group)
+	if g == nil {
+		return out, fmt.Errorf("group not found")
+	}
+	isSuccess, err := g.Delete(key)
+	if err != nil {
+		return out, err
+	}
+	out.Value = isSuccess
 	return out, nil
 }
 
