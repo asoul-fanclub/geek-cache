@@ -14,12 +14,6 @@ type cache struct {
 	cacheBytes int64
 }
 
-func (cache *cache) add(key string, value ByteView) {
-	// lazy load
-	cache.lruCacheLazyLoadIfNeed()
-	cache.lruCache.Add(key, value)
-}
-
 func (cache *cache) lruCacheLazyLoadIfNeed() {
 	if cache.lruCache == nil {
 		cache.lock.Lock()
@@ -28,6 +22,12 @@ func (cache *cache) lruCacheLazyLoadIfNeed() {
 			cache.lruCache = c.NewLRUCache(cache.cacheBytes)
 		}
 	}
+}
+
+func (cache *cache) add(key string, value ByteView) {
+	// lazy load
+	cache.lruCacheLazyLoadIfNeed()
+	cache.lruCache.Add(key, value)
 }
 
 func (cache *cache) get(key string) (value ByteView, ok bool) {
@@ -46,4 +46,13 @@ func (cache *cache) addWithExpiration(key string, value ByteView, expirationTime
 	// lazy load
 	cache.lruCacheLazyLoadIfNeed()
 	cache.lruCache.AddWithExpiration(key, value, expirationTime)
+}
+
+func (cache *cache) delete(key string) bool {
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
+	if cache.lruCache == nil {
+		return true
+	}
+	return cache.lruCache.Delete(key)
 }

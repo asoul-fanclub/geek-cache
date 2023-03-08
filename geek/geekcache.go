@@ -92,6 +92,28 @@ func (g *Group) load(key string) (ByteView, error) {
 	return ByteView{}, err
 }
 
+func (g *Group) Delete(key string) (bool, error) {
+	if key == "" {
+		return true, fmt.Errorf("key is required")
+	}
+	// Peer is not set, delete from local
+	if g.peers == nil {
+		return g.mainCache.delete(key), nil
+	}
+	// The peer is set,
+	peer, ok, isSelf := g.peers.PickPeer(key)
+	if !ok {
+		return false, nil
+	}
+	if isSelf {
+		return g.mainCache.delete(key), nil
+	} else {
+		//use other server to delete the key-value
+		success, err := g.deleteFromPeer(peer, key)
+		return success, err
+	}
+}
+
 func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 	bytes, err := peer.Get(g.name, key)
 	if err != nil {
@@ -100,6 +122,14 @@ func (g *Group) getFromPeer(peer PeerGetter, key string) (ByteView, error) {
 	return ByteView{
 		b: cloneBytes(bytes),
 	}, nil
+}
+
+func (g *Group) deleteFromPeer(peer PeerGetter, key string) (bool, error) {
+	success, err := peer.Delete(g.name, key)
+	if err != nil {
+		return false, err
+	}
+	return success, nil
 }
 
 func (g *Group) getLocally(key string) (ByteView, error) {

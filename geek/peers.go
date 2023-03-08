@@ -21,6 +21,7 @@ type PeerPicker interface {
 // PeerGetter must be implemented by a peer
 type PeerGetter interface {
 	Get(group string, key string) ([]byte, error)
+	Delete(group string, key string) (bool, error)
 }
 
 type ClientPicker struct {
