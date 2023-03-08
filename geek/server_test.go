@@ -2,6 +2,7 @@ package geek
 
 import (
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"log"
 	"math/rand"
 	"reflect"
@@ -16,6 +17,7 @@ var server_test_db = map[string]string{
 }
 
 func TestServer(t *testing.T) {
+	a := assert.New(t)
 	g := NewGroup("scores", 2<<10, GetterFunc(
 		func(key string) ([]byte, bool, time.Time) {
 			log.Println("[SlowDB] search key", key)
@@ -37,6 +39,9 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	s, err := g.Delete("Tom")
+	a.True(s)
+	a.Nil(err)
 	if !reflect.DeepEqual(view.String(), "630") {
 		t.Errorf("Tom %s(actual)/%s(ok)", view.String(), "630")
 	}
