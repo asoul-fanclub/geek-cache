@@ -3,15 +3,14 @@ package geek
 import (
 	"fmt"
 	"log"
-	"sync"
 	"time"
 
 	"github.com/Makonike/geek-cache/geek/singleflight"
 )
 
 var (
-	lock   sync.RWMutex
-	groups = make(map[string]*Group)
+	groups  = make(map[string]*Group)
+	hgroups = make(map[string]*Group)
 )
 
 type Group struct {
@@ -31,12 +30,10 @@ func (g *Group) RegisterPeers(peers PeerPicker) {
 
 // NewGroup 新创建一个Group
 // 如果存在同名的group会进行覆盖
-func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
+func NewGroup(name string, cacheBytes int64, isHot bool, getter Getter) *Group {
 	if getter == nil {
 		panic("nil Getter")
 	}
-	lock.Lock()
-	defer lock.Unlock()
 	g := &Group{
 		name:   name,
 		getter: getter,
@@ -45,15 +42,37 @@ func NewGroup(name string, cacheBytes int64, getter Getter) *Group {
 		},
 		loader: &singleflight.Group{},
 	}
-	groups[name] = g
+	if !isHot {
+		groups[name] = g
+	} else {
+		hgroups[name] = g
+	}
 	return g
 }
 
 func GetGroup(name string) *Group {
-	lock.RLock()
 	g := groups[name]
-	lock.RUnlock()
 	return g
+}
+
+func GetHGroup(name string) *Group {
+	g := hgroups[name]
+	return g
+}
+
+func (g *Group) HGet(key string) (ByteView, error) {
+	if key == "" {
+		return ByteView{}, fmt.Errorf("key is required")
+	}
+	// make sure requests for the key only execute once in concurrent condition
+	v, err := g.loader.Do(key, func() (interface{}, error) {
+		return g.getLocally(key)
+	})
+
+	if err == nil {
+		return v.(ByteView), nil
+	}
+	return ByteView{}, err
 }
 
 func (g *Group) Get(key string) (ByteView, error) {
