@@ -29,6 +29,8 @@ grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.Group
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8003 pb.GroupCache/HGet 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8003 pb.GroupCache/HGet 
 
+sleep 3
+
 kill -9 `lsof -ti:8002`;
 
 sleep 3

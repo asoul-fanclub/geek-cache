@@ -12,6 +12,20 @@ The package supports 3 last Go versions and requires a Go version with modules s
 
 Be sure to install **etcd v3**(port 2379), grpcurl(for your tests), protobuf v3.
 
+## Interface
+
+- Get
+
+Get the value with specific group and key. Node will find from the peer node which was chosen by hash function, if not found, will get locally by given method.
+
+- HGet
+
+Like Get, but always get locally.
+
+- Delete
+
+Delete the value if the value is changed.
+
 ## Config
 
 In your application, you can configure like following:
@@ -50,8 +64,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
+	"strconv"
+	"time"
 
 	"github.com/Makonike/geek-cache/geek"
 )
@@ -68,36 +83,32 @@ func main() {
 	}
 	// NewGroup create a Group which means a kind of sources
 	// contain a func that used when misses cache
-	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
-		func(key string) ([]byte, error) {
+	g := geek.NewGroup("scores", 2<<10, false, geek.GetterFunc(
+		func(key string) ([]byte, bool, time.Time) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := mysql[key]; ok {
-				return []byte(v), nil
+				return []byte(v), true, time.Time{}
 			}
-			return nil, fmt.Errorf("%s not found", key)
+			return nil, false, time.Time{}
 		}))
-
-	addrMap := map[int]string{
-		8001: "8001",
-		8002: "8002",
-		8003: "8003",
-	}
-	var addr string = "127.0.0.1:" + addrMap[port]
+	g2 := geek.NewGroup("scores", 2<<10, true, geek.GetterFunc(
+		func(key string) ([]byte, bool, time.Time) {
+			log.Println("[SlowDB] search hot key", key)
+			if v, ok := mysql[key]; ok {
+				return []byte(v), true, time.Time{}
+			}
+			return nil, false, time.Time{}
+		}))
+	var addr string = "127.0.0.1:" + strconv.Itoa(port)
 
 	server, err := geek.NewServer(addr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	addrs := make([]string, 0)
-	for _, addr := range addrMap {
-		addrs = append(addrs, "127.0.0.1:"+addr)
-	}
-
-	// set client address
 	picker := geek.NewClientPicker(addr)
-	picker.SetSimply(addrs...)
 	g.RegisterPeers(picker)
+	g2.RegisterPeers(picker)
 
 	for {
 		err = server.Start()
@@ -131,6 +142,20 @@ grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.Group
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8003 pb.GroupCache/Get 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8003 pb.GroupCache/Get 
 
+sleep 3
+
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8001 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8001 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8001 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8002 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8002 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8002 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom1"}' 127.0.0.1:8003 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom2"}' 127.0.0.1:8003 pb.GroupCache/HGet 
+
+sleep 3
+
 kill -9 `lsof -ti:8002`;
 
 sleep 3
@@ -138,6 +163,10 @@ sleep 3
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8001 pb.GroupCache/Get 
 grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.GroupCache/Get 
 
+sleep 3
+
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8001 pb.GroupCache/HGet 
+grpcurl -plaintext -d '{"group":"scores", "key": "Tom"}' 127.0.0.1:8003 pb.GroupCache/HGet 
 wait
 ```
 
@@ -145,77 +174,143 @@ Running the shell, then you can see the results following.
 
 ```bash
 $ ./a.sh 
-2023/02/21 10:33:04 [127.0.0.1:8002] register service success
-2023/02/21 10:33:04 [127.0.0.1:8003] register service success
-2023/02/21 10:33:04 [127.0.0.1:8001] register service success
 >>> start test
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:10 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8002
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:10 [SlowDB] search key Tom
+2023/03/22 22:35:29 [127.0.0.1:8003] register service success
+2023/03/22 22:35:29 [127.0.0.1:8002] register service success
+2023/03/22 22:35:29 [127.0.0.1:8001] register service success
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:29 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8002
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:29 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8002
+2023/03/22 22:35:29 [SlowDB] search key Tom
 {
   "value": "NjMw"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom1)
-2023/02/21 10:33:10 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/21 10:33:10 [SlowDB] search key Tom1
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:29 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:29 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [SlowDB] search key Tom1
 {
   "value": "NjMx"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom2)
-2023/02/21 10:33:10 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/21 10:33:10 [SlowDB] search key Tom2
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:29 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:29 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [SlowDB] search key Tom2
 {
   "value": "NjMy"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:10 [Geek-Cache] hit
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:29 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8002
+2023/03/22 22:35:29 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom1)
-2023/02/21 10:33:10 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/21 10:33:10 [Geek-Cache] hit
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:29 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:29 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom2)
-2023/02/21 10:33:10 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/21 10:33:10 [Geek-Cache] hit
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:29 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:29 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache] hit
 {
   "value": "NjMy"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:10 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8002
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8002] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:10 [Geek-Cache] hit
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:29 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8002
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:29 [Server 127.0.0.1:8002] Pick peer 127.0.0.1:8002
+2023/03/22 22:35:29 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom1)
-2023/02/21 10:33:10 [Geek-Cache] hit
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:29 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache] hit
 {
   "value": "NjMx"
 }
-2023/02/21 10:33:10 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom2)
-2023/02/21 10:33:10 [Geek-Cache] hit
+2023/03/22 22:35:29 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:29 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8003
+2023/03/22 22:35:29 [Geek-Cache] hit
 {
   "value": "NjMy"
 }
-./a.sh：行 23: 36214 已杀死               ./server -port=8002
-2023/02/21 10:33:16 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:16 [SlowDB] search key Tom
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom
 {
   "value": "NjMw"
 }
-2023/02/21 10:33:16 [Geek-Cache 127.0.0.1:8003] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:16 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8001
-2023/02/21 10:33:16 [Geek-Cache 127.0.0.1:8001] Recv RPC Request - (scores)/(Tom)
-2023/02/21 10:33:16 [Geek-Cache] hit
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom1
+{
+  "value": "NjMx"
+}
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom2
+{
+  "value": "NjMy"
+}
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom
+{
+  "value": "NjMw"
+}
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom1
+{
+  "value": "NjMx"
+}
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8002] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom2
+{
+  "value": "NjMy"
+}
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom
+{
+  "value": "NjMw"
+}
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom1)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom1
+{
+  "value": "NjMx"
+}
+2023/03/22 22:35:32 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom2)
+2023/03/22 22:35:32 [SlowDB] search hot key Tom2
+{
+  "value": "NjMy"
+}
+./a.sh：行 36: 37053 已杀死               ./server -port=8002
+2023/03/22 22:35:38 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:38 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8001
+2023/03/22 22:35:38 [SlowDB] search key Tom
+{
+  "value": "NjMw"
+}
+2023/03/22 22:35:38 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:38 [Server 127.0.0.1:8003] Pick peer 127.0.0.1:8001
+2023/03/22 22:35:38 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:38 [Server 127.0.0.1:8001] Pick peer 127.0.0.1:8001
+2023/03/22 22:35:38 [Geek-Cache] hit
+{
+  "value": "NjMw"
+}
+2023/03/22 22:35:41 [Geek-Cache 127.0.0.1:8001] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:41 [Geek-Cache] hit
+{
+  "value": "NjMw"
+}
+2023/03/22 22:35:41 [Geek-Cache 127.0.0.1:8003] Recv RPC Request for get- (scores)/(Tom)
+2023/03/22 22:35:41 [Geek-Cache] hit
 {
   "value": "NjMw"
 }
@@ -223,19 +318,16 @@ $ ./a.sh
 
 ## Tech Stack
 
-Golang+grpc+etcd
+GoLang+GRPC+ETCD
 
 ## Feature
 
-- 使用一致性哈希解决缓存副本冗余、rehashing开销大、缓存雪崩的问题
-- 使用singleFlight解决缓存击穿问题
-- 使用protobuf进行节点间通信，编码报文，提高效率
-- 构造虚拟节点使得请求映射负载均衡
+- 使用一致性哈希解决缓存副本冗余、Rehashing开销大、缓存雪崩的问题
+- 使用SingleFlight解决缓存击穿问题
+- 使用ProtoBuf进行节点间通信，编码报文，提高效率
+- 构造虚拟节点使得请求映射负载均衡，提⾼可⽤性
+- 实现了过期删除策略，惰性清除与定期清除，防⽌经常扫描内存⽽导致开销过⼤
 - 使用LRU缓存淘汰算法解决资源限制的问题
-- 使用etcd服务发现动态更新哈希环
+- 使用ETCD服务发现动态更新哈希环
 - 支持并发读
-
-## TODO List
-
-- 添加多种缓存淘汰策略
-- 支持多协议通信
+- 支持Hot Key缓存预热
