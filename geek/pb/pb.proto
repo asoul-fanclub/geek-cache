@@ -8,7 +8,6 @@ message Request {
     string key = 2;
 }
 
-
 message ResponseForGet {
     bytes value = 1;
 }
@@ -20,4 +19,5 @@ message ResponseForDelete {
 service GroupCache {
     rpc Get(Request) returns (ResponseForGet);
     rpc Delete(Request) returns(ResponseForDelete);
+    rpc HGet(Request) returns (ResponseForGet);
 }
