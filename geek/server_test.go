@@ -18,7 +18,7 @@ var server_test_db = map[string]string{
 
 func TestServer(t *testing.T) {
 	a := assert.New(t)
-	g := NewGroup("scores", 2<<10, GetterFunc(
+	g := NewGroup("scores", 2<<10, false, GetterFunc(
 		func(key string) ([]byte, bool, time.Time) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := server_test_db[key]; ok {

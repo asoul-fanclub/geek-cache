@@ -21,7 +21,7 @@ func main() {
 	}
 	// NewGroup create a Group which means a kind of sources
 	// contain a func that used when misses cache
-	g := geek.NewGroup("scores", 2<<10, geek.GetterFunc(
+	g := geek.NewGroup("scores", 2<<10, false, geek.GetterFunc(
 		func(key string) ([]byte, bool, time.Time) {
 			log.Println("[SlowDB] search key", key)
 			if v, ok := mysql[key]; ok {
@@ -29,7 +29,14 @@ func main() {
 			}
 			return nil, false, time.Time{}
 		}))
-
+	g2 := geek.NewGroup("scores", 2<<10, true, geek.GetterFunc(
+		func(key string) ([]byte, bool, time.Time) {
+			log.Println("[SlowDB] search hot key", key)
+			if v, ok := mysql[key]; ok {
+				return []byte(v), true, time.Time{}
+			}
+			return nil, false, time.Time{}
+		}))
 	var addr string = "127.0.0.1:" + strconv.Itoa(port)
 
 	server, err := geek.NewServer(addr)
@@ -39,6 +46,7 @@ func main() {
 
 	picker := geek.NewClientPicker(addr)
 	g.RegisterPeers(picker)
+	g2.RegisterPeers(picker)
 
 	for {
 		err = server.Start()

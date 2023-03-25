@@ -1,13 +1,13 @@
 syntax = "proto3";
 package pb;
 
-option go_package = "./";
+// protoc --go_out=plugins=grpc:. *.proto
+option go_package = ".;__";
 
 message Request {
     string group = 1;
     string key = 2;
 }
-
 
 message ResponseForGet {
     bytes value = 1;
@@ -20,4 +20,6 @@ message ResponseForDelete {
 service GroupCache {
     rpc Get(Request) returns (ResponseForGet);
     rpc Delete(Request) returns(ResponseForDelete);
+    rpc HGet(Request) returns (ResponseForGet);
+    rpc HDelete(Request) returns (ResponseForDelete);
 }

@@ -17,7 +17,7 @@ var db = map[string]string{
 
 func TestGroup_Get(t *testing.T) {
 	loads := make(map[string]int)
-	gee := NewGroup("scores", 2<<10, GetterFunc(
+	gee := NewGroup("scores", 2<<10, false, GetterFunc(
 		func(key string) ([]byte, bool, time.Time) {
 			if v, ok := db[key]; ok {
 				loads[key] += 1
@@ -46,6 +46,37 @@ func TestGroup_Get(t *testing.T) {
 	}
 }
 
+func TestGroup_HGet(t *testing.T) {
+	loads := make(map[string]int)
+	gee := NewGroup("scores", 2<<10, true, GetterFunc(
+		func(key string) ([]byte, bool, time.Time) {
+			if v, ok := db[key]; ok {
+				loads[key] += 1
+				return []byte(v), true, time.Time{}
+			}
+			return nil, false, time.Time{}
+		}),
+	)
+	gee1 := GetHGroup("scores")
+	_, err := gee1.HGet("")
+	if err == nil {
+		t.Fatalf("Get params is empty, excepted not nil error, but nil")
+	}
+
+	for k, v := range db {
+		if view, err := gee.HGet(k); err != nil || view.String() != v {
+			t.Fatalf("expected err is nil and value is %v, but err is %v, value is %v", v, err, view.String())
+		}
+		// load from callback
+		if _, err := gee.HGet(k); err != nil || loads[k] > 1 {
+			t.Fatalf("cache %v miss", k)
+		}
+	}
+	if view, err := gee.HGet("unknown"); err == nil {
+		t.Fatalf("the key unknown but get %v", view)
+	}
+}
+
 func TestGroup_Delete(t *testing.T) {
 	a := assert.New(t)
 	database := map[string]string{
@@ -55,7 +86,7 @@ func TestGroup_Delete(t *testing.T) {
 		"Alice": "653",
 	}
 	loads := make(map[string]int)
-	NewGroup("scores", 2<<10, GetterFunc(
+	NewGroup("scores", 2<<10, false, GetterFunc(
 		func(key string) ([]byte, bool, time.Time) {
 			if v, ok := database[key]; ok {
 				loads[key] += 1
@@ -89,7 +120,7 @@ func TestGroup_SetTimeout(t *testing.T) {
 		"Alice": "653",
 	}
 	loads := make(map[string]int)
-	_ = NewGroup("scores", 2<<10, GetterFunc(
+	_ = NewGroup("scores", 2<<10, false, GetterFunc(
 		func(key string) ([]byte, bool, time.Time) {
 			rand.Seed(time.Now().UnixNano())
 			if v, ok := db2[key]; ok {
@@ -111,5 +142,4 @@ func TestGroup_SetTimeout(t *testing.T) {
 	time.Sleep(10 * time.Second)
 	v2, _ := gee1.Get("Alice")
 	a.Equal(v2.String(), "123")
-
 }
