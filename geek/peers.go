@@ -25,16 +25,16 @@ type PeerGetter interface {
 }
 
 type ClientPicker struct {
-	self        string // self ip
+	selfAddress string // self ip
 	serviceName string
 	mu          sync.RWMutex        // guards
 	consHash    *consistenthash.Map // stores the list of peers, selected by specific key
 	clients     map[string]*Client  // keyed by e.g. "10.0.0.2:8009"
 }
 
-func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
+func NewClientPicker(selfAddress string, opts ...PickerOptions) *ClientPicker {
 	picker := ClientPicker{
-		self:        self,
+		selfAddress: selfAddress,
 		serviceName: defaultServiceName,
 		clients:     make(map[string]*Client),
 		mu:          sync.RWMutex{},
@@ -47,7 +47,7 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 	picker.mu.Unlock()
 	// 增量更新
 	// TODO: watch closed
-	picker.set(picker.self)
+	picker.set(picker.selfAddress)
 	go func() {
 		cli, err := clientv3.New(*registry.GlobalClientConfig)
 		if err != nil {
@@ -68,7 +68,7 @@ func NewClientPicker(self string, opts ...PickerOptions) *ClientPicker {
 					key := string(x.Kv.Key)
 					idx := strings.Index(key, picker.serviceName)
 					addr := key[idx+len(picker.serviceName)+1:]
-					if addr == picker.self {
+					if addr == picker.selfAddress {
 						continue
 					}
 					if x.IsCreate() {
@@ -146,12 +146,12 @@ func (s *ClientPicker) PickPeer(key string) (PeerGetter, bool, bool) {
 	defer s.mu.RUnlock()
 	if peer := s.consHash.Get(key); peer != "" {
 		s.Log("Pick peer %s", peer)
-		return s.clients[peer], true, peer == s.self
+		return s.clients[peer], true, peer == s.selfAddress
 	}
 	return nil, false, false
 }
 
 // Log info
 func (s *ClientPicker) Log(format string, path ...interface{}) {
-	log.Printf("[Server %s] %s", s.self, fmt.Sprintf(format, path...))
+	log.Printf("[Server %s] %s", s.selfAddress, fmt.Sprintf(format, path...))
 }
