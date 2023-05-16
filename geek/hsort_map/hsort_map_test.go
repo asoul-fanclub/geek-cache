@@ -85,3 +85,22 @@ func TestHSkipList_Delete(t *testing.T) {
 		}
 	}
 }
+
+func TestHSkipList_Exist(t *testing.T) {
+	a := assert.New(t)
+	var m HSortMap = NewHSkipList(func(a string) string {
+		return a
+	})
+	for i := 0; i < 100; i += 2 {
+		s := strconv.Itoa(i)
+		m.Put(s, []byte(s))
+	}
+	for i := 0; i < 100; i++ {
+		key := strconv.Itoa(i)
+		if i%2 != 0 {
+			a.False(m.Exist(key))
+		} else {
+			a.True(m.Exist(key))
+		}
+	}
+}
