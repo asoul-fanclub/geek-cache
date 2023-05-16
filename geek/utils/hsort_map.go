@@ -204,6 +204,18 @@ func (t *SkipList) Put(key []byte, value interface{}) {
 	t.Len++
 }
 
+// DeleteByHashRange 根据一个hash范围进行删除
+// [lhash, rhash) 左闭右开
+func (t *SkipList) DeleteByHashRange(lhash []byte, rhash []byte) {
+
+	prevs := t.backNodes(lhash)
+	prevs2 := t.backNodes(rhash)
+
+	for k := range prevs {
+		prevs[k].next[k] = prevs2[k].next[k]
+	}
+}
+
 // 一个简单的数学概率问题，假设向上不建立索引的概率为0.4
 // （代码实际的概率为1/e）
 // 首先第一层（索引为0）是一定会插入的
