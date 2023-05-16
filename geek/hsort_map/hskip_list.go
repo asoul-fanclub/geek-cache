@@ -1,9 +1,9 @@
 package hsort_map
 
 import (
-	"bytes"
 	"math"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -13,14 +13,14 @@ const (
 )
 
 // Hash 用于计算key的Hash函数
-type Hash func([]byte) []byte
+type Hash func(string) string
 
 // Node 跳表的一个节点
 type Node struct {
 	next  []*Node
-	key   []byte
-	hash  []byte
-	value interface{}
+	key   string
+	hash  string
+	value []byte
 }
 
 // HSkipList 跳表
@@ -59,7 +59,7 @@ func (t *HSkipList) Front() *Node {
 	return t.head
 }
 
-func (t *HSkipList) Get(key []byte) interface{} {
+func (t *HSkipList) Get(key string) []byte {
 	node := t.get(key)
 	if node != nil {
 		return node.value
@@ -68,7 +68,7 @@ func (t *HSkipList) Get(key []byte) interface{} {
 }
 
 // get find value by the key, returns nil if not found.
-func (t *HSkipList) get(key []byte) *Node {
+func (t *HSkipList) get(key string) *Node {
 
 	hkey := t.hash(key)
 
@@ -84,7 +84,7 @@ func (t *HSkipList) get(key []byte) *Node {
 	for i := t.maxLevel - 1; i >= 0; i-- {
 		next = node.next[i]
 
-		for next != nil && bytes.Compare(hkey, next.hash) > 0 {
+		for next != nil && strings.Compare(hkey, next.hash) > 0 {
 			node = next
 			next = next.next[i]
 		}
@@ -92,8 +92,8 @@ func (t *HSkipList) get(key []byte) *Node {
 
 	//循环遍历接下来的节点，找到目标key
 	node = node.Next()
-	for node != nil && bytes.Compare(node.hash, hkey) <= 0 {
-		if bytes.Compare(node.key, key) == 0 {
+	for node != nil && strings.Compare(node.hash, hkey) <= 0 {
+		if strings.Compare(node.key, key) == 0 {
 			return node
 		}
 		node = node.Next()
@@ -102,12 +102,12 @@ func (t *HSkipList) get(key []byte) *Node {
 }
 
 // Exist 判断key是否存在
-func (t *HSkipList) Exist(key []byte) bool {
+func (t *HSkipList) Exist(key string) bool {
 	return t.Get(key) != nil
 }
 
 // backNodes 查找为目标hash值节点的前面的所有节点
-func (t *HSkipList) backNodes(hash []byte) []*Node {
+func (t *HSkipList) backNodes(hash string) []*Node {
 	node := t.head
 	var next *Node
 
@@ -117,7 +117,7 @@ func (t *HSkipList) backNodes(hash []byte) []*Node {
 	for i := t.maxLevel - 1; i >= 0; i-- {
 		next = node.next[i]
 		//寻找过程与get保持一致
-		for next != nil && bytes.Compare(hash, next.hash) > 0 {
+		for next != nil && strings.Compare(hash, next.hash) > 0 {
 			node = next
 			next = next.next[i]
 		}
@@ -128,7 +128,7 @@ func (t *HSkipList) backNodes(hash []byte) []*Node {
 	return prevs
 }
 
-func (t *HSkipList) nextNodes(hash []byte) []*Node {
+func (t *HSkipList) nextNodes(hash string) []*Node {
 	node := t.head
 	var next *Node
 
@@ -138,7 +138,7 @@ func (t *HSkipList) nextNodes(hash []byte) []*Node {
 	for i := t.maxLevel - 1; i >= 0; i-- {
 		next = node.next[i]
 		//寻找过程与get保持一致
-		for next != nil && bytes.Compare(hash, next.hash) >= 0 {
+		for next != nil && strings.Compare(hash, next.hash) >= 0 {
 			node = next
 			next = next.next[i]
 		}
@@ -150,7 +150,7 @@ func (t *HSkipList) nextNodes(hash []byte) []*Node {
 }
 
 // Remove element by the key.
-func (t *HSkipList) Delete(key []byte) interface{} {
+func (t *HSkipList) Delete(key string) interface{} {
 	// 判断节点是否存在
 	if t.Get(key) == nil {
 		return nil
@@ -161,8 +161,8 @@ func (t *HSkipList) Delete(key []byte) interface{} {
 	// 删除节点
 	var answer interface{}
 	for i, node := range prev {
-		for node != nil && node.next != nil && bytes.Compare(node.next[i].hash, hash) == 0 {
-			if bytes.Compare(node.next[i].key, key) == 0 {
+		for node != nil && node.next != nil && strings.Compare(node.next[i].hash, hash) == 0 {
+			if strings.Compare(node.next[i].key, key) == 0 {
 				if answer == nil {
 					answer = node.next[i].value
 				}
@@ -178,7 +178,7 @@ func (t *HSkipList) Delete(key []byte) interface{} {
 }
 
 // Put an element into skip list, replace the value if key already exists.
-func (t *HSkipList) Put(key []byte, value interface{}) {
+func (t *HSkipList) Put(key string, value []byte) {
 
 	// key已经存在则直接设置为目标值
 	node := t.get(key)
@@ -206,7 +206,7 @@ func (t *HSkipList) Put(key []byte, value interface{}) {
 
 // DeleteByHashRange 根据一个hash范围进行删除
 // [lhash, rhash) 左闭右开
-func (t *HSkipList) DeleteByHashRange(lhash []byte, rhash []byte) {
+func (t *HSkipList) DeleteByHashRange(lhash string, rhash string) {
 
 	prevs := t.backNodes(lhash)
 	prevs2 := t.backNodes(rhash)
