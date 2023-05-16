@@ -150,7 +150,7 @@ func (t *HSkipList) nextNodes(hash string) []*Node {
 }
 
 // Remove element by the key.
-func (t *HSkipList) Delete(key string) interface{} {
+func (t *HSkipList) Delete(key string) []byte {
 	// 判断节点是否存在
 	if t.Get(key) == nil {
 		return nil
@@ -159,7 +159,7 @@ func (t *HSkipList) Delete(key string) interface{} {
 	hash := t.hash(key)
 	prev := t.backNodes(hash)
 	// 删除节点
-	var answer interface{}
+	var answer []byte
 	for i, node := range prev {
 		for node != nil && node.next != nil && strings.Compare(node.next[i].hash, hash) == 0 {
 			if strings.Compare(node.next[i].key, key) == 0 {
