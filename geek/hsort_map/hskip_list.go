@@ -163,13 +163,15 @@ func (t *HSkipList) Delete(key string) []byte {
 	// 删除节点
 	var answer []byte
 	for i, node := range prev {
-		for node != nil && node.next != nil && strings.Compare(node.next[i].hash, hash) == 0 {
-			if strings.Compare(node.next[i].key, key) == 0 {
-				if answer == nil {
-					answer = node.next[i].value
-				}
-				node.next[i] = node.next[i].next[i]
+		for node != nil && node.next[i] != nil &&
+			strings.Compare(node.next[i].hash, hash) == 0 && strings.Compare(node.next[i].key, key) != 0 {
+			node = node.next[i]
+		}
+		if node != nil && node.next[i] != nil && strings.Compare(node.next[i].key, key) == 0 {
+			if answer == nil {
+				answer = node.next[i].value
 			}
+			node.next[i] = node.next[i].next[i]
 		}
 	}
 
