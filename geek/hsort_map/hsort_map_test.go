@@ -58,3 +58,30 @@ func TestHSortMap_GetAndPut(t *testing.T) {
 		a.Equal([]byte(s), m.Get(s))
 	}
 }
+
+func TestHSkipList_Delete(t *testing.T) {
+	a := assert.New(t)
+	// 检测删除
+	var m HSortMap = NewHSkipList(func(a string) string {
+		n, _ := strconv.Atoi(a)
+		if n >= 10 && n < 20 {
+			return "10"
+		}
+		return a
+	})
+	for i := 0; i < 100; i++ {
+		s := strconv.Itoa(i)
+		m.Put(s, []byte(s))
+	}
+	for i := 0; i < 100; i += 3 {
+		m.Delete(strconv.Itoa(i))
+	}
+	for i := 0; i < 100; i++ {
+		key := strconv.Itoa(i)
+		if i%3 == 0 {
+			a.Equal(m.Get(key), nil)
+		} else {
+			a.Equal(m.Get(key), key)
+		}
+	}
+}
