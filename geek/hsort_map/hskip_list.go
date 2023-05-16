@@ -1,4 +1,4 @@
-package utils
+package hsort_map
 
 import (
 	"bytes"
@@ -23,10 +23,10 @@ type Node struct {
 	value interface{}
 }
 
-// SkipList 跳表
+// HSkipList 跳表
 // 通过hash排序的跳表，用于存储k-v对，并且可以根据hash值去删除一个区间
 // 注意：该跳表并不是根据key进行排序的，而是根据key的hash值进行排序的
-type SkipList struct {
+type HSkipList struct {
 	head        *Node // 链表头节点
 	maxLevel    int   // 链表最大高度
 	Len         int   // 跳表元素长度
@@ -37,9 +37,9 @@ type SkipList struct {
 }
 
 // 创建跳表
-// NewSkipList create a new skip list.
-func NewSkipList(hash Hash) *SkipList {
-	return &SkipList{
+// NewHSkipList create a new skip list.
+func NewHSkipList(hash Hash) *HSkipList {
+	return &HSkipList{
 		head:        nil,
 		maxLevel:    maxLevel,
 		randSource:  rand.New(rand.NewSource(time.Now().UnixNano())),
@@ -55,11 +55,11 @@ func (e *Node) Next() *Node {
 }
 
 // Front 获取跳表的第一元素
-func (t *SkipList) Front() *Node {
+func (t *HSkipList) Front() *Node {
 	return t.head
 }
 
-func (t *SkipList) Get(key []byte) interface{} {
+func (t *HSkipList) Get(key []byte) interface{} {
 	node := t.get(key)
 	if node != nil {
 		return node.value
@@ -68,7 +68,7 @@ func (t *SkipList) Get(key []byte) interface{} {
 }
 
 // get find value by the key, returns nil if not found.
-func (t *SkipList) get(key []byte) *Node {
+func (t *HSkipList) get(key []byte) *Node {
 
 	hkey := t.hash(key)
 
@@ -102,12 +102,12 @@ func (t *SkipList) get(key []byte) *Node {
 }
 
 // Exist 判断key是否存在
-func (t *SkipList) Exist(key []byte) bool {
+func (t *HSkipList) Exist(key []byte) bool {
 	return t.Get(key) != nil
 }
 
 // backNodes 查找为目标hash值节点的前面的所有节点
-func (t *SkipList) backNodes(hash []byte) []*Node {
+func (t *HSkipList) backNodes(hash []byte) []*Node {
 	node := t.head
 	var next *Node
 
@@ -128,7 +128,7 @@ func (t *SkipList) backNodes(hash []byte) []*Node {
 	return prevs
 }
 
-func (t *SkipList) nextNodes(hash []byte) []*Node {
+func (t *HSkipList) nextNodes(hash []byte) []*Node {
 	node := t.head
 	var next *Node
 
@@ -150,7 +150,7 @@ func (t *SkipList) nextNodes(hash []byte) []*Node {
 }
 
 // Remove element by the key.
-func (t *SkipList) Remove(key []byte) interface{} {
+func (t *HSkipList) Delete(key []byte) interface{} {
 	// 判断节点是否存在
 	if t.Get(key) == nil {
 		return nil
@@ -178,7 +178,7 @@ func (t *SkipList) Remove(key []byte) interface{} {
 }
 
 // Put an element into skip list, replace the value if key already exists.
-func (t *SkipList) Put(key []byte, value interface{}) {
+func (t *HSkipList) Put(key []byte, value interface{}) {
 
 	// key已经存在则直接设置为目标值
 	node := t.get(key)
@@ -206,7 +206,7 @@ func (t *SkipList) Put(key []byte, value interface{}) {
 
 // DeleteByHashRange 根据一个hash范围进行删除
 // [lhash, rhash) 左闭右开
-func (t *SkipList) DeleteByHashRange(lhash []byte, rhash []byte) {
+func (t *HSkipList) DeleteByHashRange(lhash []byte, rhash []byte) {
 
 	prevs := t.backNodes(lhash)
 	prevs2 := t.backNodes(rhash)
@@ -234,7 +234,7 @@ func probabilityTable(probability float64, maxLevel int) (table []float64) {
 
 // 随机决定生成多少层索引
 // generate random index level.
-func (t *SkipList) randomLevel() (level int) {
+func (t *HSkipList) randomLevel() (level int) {
 	//生成一个随机数
 	r := float64(t.randSource.Int63()) / (1 << 63)
 	//第一层一定生成
