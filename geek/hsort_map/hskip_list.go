@@ -40,7 +40,9 @@ type HSkipList struct {
 // NewHSkipList create a new skip list.
 func NewHSkipList(hash Hash) *HSkipList {
 	return &HSkipList{
-		head:        nil,
+		head: &Node{
+			next: make([]*Node, maxLevel),
+		},
 		maxLevel:    maxLevel,
 		randSource:  rand.New(rand.NewSource(time.Now().UnixNano())),
 		probability: probability,
@@ -194,6 +196,7 @@ func (t *HSkipList) Put(key string, value []byte) {
 		// 随机高度
 		next:  make([]*Node, t.randomLevel()),
 		key:   key,
+		hash:  t.hash(key),
 		value: value,
 	}
 	for i := range node.next {
