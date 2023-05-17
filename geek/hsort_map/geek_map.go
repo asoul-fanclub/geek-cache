@@ -23,6 +23,9 @@ func NewGeekMap(hash Hash) *GeekMap {
 
 func (t *GeekMap) Get(key string) (*list.Element, bool) {
 	v, b := t.m.Load(key)
+	if v == nil {
+		return nil, b
+	}
 	return v.(*list.Element), b
 }
 

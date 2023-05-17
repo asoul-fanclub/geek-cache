@@ -33,12 +33,17 @@ func TestHSortMap_GetAndPut(t *testing.T) {
 		a.True(b1 && b2 && b3)
 
 		// 含有相同hash
-		m = NewHSkipList(func(a string) string {
+		hash2 := func(a string) string {
 			if a == "3" || a == "4" {
 				return "2"
 			}
 			return a
-		})
+		}
+		if i == 0 {
+			m = NewHSkipList(hash2)
+		} else {
+			m = NewGeekMap(hash2)
+		}
 		for i := 0; i < 100; i++ {
 			s := strconv.Itoa(i)
 			m.Put(s, &list.Element{Value: []byte(s)})
@@ -75,69 +80,93 @@ func TestHSortMap_GetAndPut(t *testing.T) {
 func TestHSkipList_Delete(t *testing.T) {
 	a := assert.New(t)
 	// 检测删除
-	var m HSortMap = NewHSkipList(func(a string) string {
-		n, _ := strconv.Atoi(a)
-		if n >= 10 && n < 20 {
-			return "10"
+	for i := 0; i < 2; i++ {
+		var m HSortMap
+		hash := func(a string) string {
+			n, _ := strconv.Atoi(a)
+			if n >= 10 && n < 20 {
+				return "10"
+			}
+			return a
 		}
-		return a
-	})
-	for i := 0; i < 100; i++ {
-		s := strconv.Itoa(i)
-		m.Put(s, &list.Element{Value: []byte(s)})
-	}
-	for i := 0; i < 100; i += 3 {
-		m.Delete(strconv.Itoa(i))
-	}
-	for i := 0; i < 100; i++ {
-		key := strconv.Itoa(i)
-		if i%3 == 0 {
-			a.Nil(m.Get(key))
+		if i == 0 {
+			m = NewGeekMap(hash)
 		} else {
-			v, b := m.Get(key)
-			a.Equal(v.Value, []byte(key))
-			a.True(b)
+			m = NewHSkipList(hash)
+		}
+		for i := 0; i < 100; i++ {
+			s := strconv.Itoa(i)
+			m.Put(s, &list.Element{Value: []byte(s)})
+		}
+		for i := 0; i < 100; i += 3 {
+			m.Delete(strconv.Itoa(i))
+		}
+		for i := 0; i < 100; i++ {
+			key := strconv.Itoa(i)
+			if i%3 == 0 {
+				a.Nil(m.Get(key))
+			} else {
+				v, b := m.Get(key)
+				a.Equal(v.Value, []byte(key))
+				a.True(b)
+			}
 		}
 	}
 }
 
 func TestHSkipList_Exist(t *testing.T) {
 	a := assert.New(t)
-	var m HSortMap = NewHSkipList(func(a string) string {
-		return a
-	})
-	for i := 0; i < 100; i += 2 {
-		s := strconv.Itoa(i)
-		m.Put(s, &list.Element{Value: []byte(s)})
-	}
-	for i := 0; i < 100; i++ {
-		key := strconv.Itoa(i)
-		if i%2 != 0 {
-			a.False(m.Exist(key))
+	for i := 0; i < 2; i++ {
+		var m HSortMap
+		hash := func(a string) string {
+			return a
+		}
+		if i == 0 {
+			m = NewGeekMap(hash)
 		} else {
-			a.True(m.Exist(key))
+			m = NewHSkipList(hash)
+		}
+		for i := 0; i < 100; i += 2 {
+			s := strconv.Itoa(i)
+			m.Put(s, &list.Element{Value: []byte(s)})
+		}
+		for i := 0; i < 100; i++ {
+			key := strconv.Itoa(i)
+			if i%2 != 0 {
+				a.False(m.Exist(key))
+			} else {
+				a.True(m.Exist(key))
+			}
 		}
 	}
 }
 
 func TestHSkipList_DeleteByHashRange(t *testing.T) {
 	a := assert.New(t)
-	var m HSortMap = NewHSkipList(func(a string) string {
-		return a
-	})
-	for i := 0; i < 100; i++ {
-		s := strconv.Itoa(i)
-		m.Put(s, &list.Element{Value: []byte(s)})
-	}
-	l := m.DeleteByHashRange("10", "20")
-	for i := 0; i < 100; i++ {
-		s := strconv.Itoa(i)
-		if s >= "10" && s < "20" {
-			l--
-			a.False(m.Exist(s))
-		} else {
-			a.True(m.Exist(s))
+	for i := 0; i < 2; i++ {
+		var m HSortMap
+		hash := func(a string) string {
+			return a
 		}
+		if i == 0 {
+			m = NewGeekMap(hash)
+		} else {
+			m = NewHSkipList(hash)
+		}
+		for i := 0; i < 100; i++ {
+			s := strconv.Itoa(i)
+			m.Put(s, &list.Element{Value: []byte(s)})
+		}
+		l := m.DeleteByHashRange("10", "20")
+		for i := 0; i < 100; i++ {
+			s := strconv.Itoa(i)
+			if s >= "10" && s < "20" {
+				l--
+				a.False(m.Exist(s))
+			} else {
+				a.True(m.Exist(s))
+			}
+		}
+		a.Equal(l, 0)
 	}
-	a.Equal(l, 0)
 }
