@@ -115,13 +115,15 @@ func TestHSkipList_DeleteByHashRange(t *testing.T) {
 		s := strconv.Itoa(i)
 		m.Put(s, &list.Element{Value: []byte(s)})
 	}
-	m.DeleteByHashRange("10", "20")
+	l := m.DeleteByHashRange("10", "20")
 	for i := 0; i < 100; i++ {
 		s := strconv.Itoa(i)
 		if s >= "10" && s < "20" {
+			l--
 			a.False(m.Exist(s))
 		} else {
 			a.True(m.Exist(s))
 		}
 	}
+	a.Equal(l, 0)
 }

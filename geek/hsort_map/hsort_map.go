@@ -9,5 +9,5 @@ type HSortMap interface {
 	Exist(key string) bool
 	Put(key string, value *list.Element)
 	Delete(key string) *list.Element
-	DeleteByHashRange(lhash string, rhash string)
+	DeleteByHashRange(lhash string, rhash string) int
 }

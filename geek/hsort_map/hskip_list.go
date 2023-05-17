@@ -212,14 +212,22 @@ func (t *HSkipList) Put(key string, value *list.Element) {
 
 // DeleteByHashRange 根据一个hash范围进行删除
 // [lhash, rhash) 左闭右开
-func (t *HSkipList) DeleteByHashRange(lhash string, rhash string) {
+func (t *HSkipList) DeleteByHashRange(lhash string, rhash string) int {
 
 	prevs := t.backNodes(lhash)
 	prevs2 := t.backNodes(rhash)
-
+	node := prevs[0].next[0]
+	tail := prevs2[0].next[0]
 	for k := range prevs {
 		prevs[k].next[k] = prevs2[k].next[k]
 	}
+
+	answer := 0
+	for node != tail {
+		answer++
+		node = node.Next()
+	}
+	return answer
 }
 
 // 一个简单的数学概率问题，假设向上不建立索引的概率为0.4
