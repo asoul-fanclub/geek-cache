@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -28,7 +29,10 @@ type Node struct {
 // 通过hash排序的跳表，用于存储k-v对，并且可以根据hash值去删除一个区间
 // todo: 需要保证线程安全
 // 注意：该跳表并不是根据key进行排序的，而是根据key的hash值进行排序的
+// 推荐理由：1. 删除区间的时间复杂log(n)
+// 不推荐理由：1. 使用读写的复杂度为log(n) 2. 目前没有实现线程安全，用一个较大的锁
 type HSkipList struct {
+	lock        sync.RWMutex
 	head        *Node // 链表头节点
 	maxLevel    int   // 链表最大高度
 	Len         int   // 跳表元素长度
@@ -64,7 +68,9 @@ func (t *HSkipList) Front() *Node {
 }
 
 func (t *HSkipList) Get(key string) *list.Element {
+	t.lock.RLock()
 	node := t.get(key)
+	t.lock.RUnlock()
 	if node != nil {
 		return node.value
 	}
@@ -155,6 +161,7 @@ func (t *HSkipList) nextNodes(hash string) []*Node {
 
 // Remove element by the key.
 func (t *HSkipList) Delete(key string) *list.Element {
+	t.lock.Lock()
 	// 判断节点是否存在
 	if t.Get(key) == nil {
 		return nil
@@ -176,7 +183,7 @@ func (t *HSkipList) Delete(key string) *list.Element {
 			node.next[i] = node.next[i].next[i]
 		}
 	}
-
+	t.lock.Unlock()
 	if answer != nil {
 		t.Len--
 	}
@@ -185,7 +192,7 @@ func (t *HSkipList) Delete(key string) *list.Element {
 
 // Put an element into skip list, replace the value if key already exists.
 func (t *HSkipList) Put(key string, value *list.Element) {
-
+	t.lock.Lock()
 	// key已经存在则直接设置为目标值
 	node := t.get(key)
 	if node != nil {
@@ -207,14 +214,14 @@ func (t *HSkipList) Put(key string, value *list.Element) {
 		node.next[i] = prev[i].next[i]
 		prev[i].next[i] = node
 	}
-
+	t.lock.Unlock()
 	t.Len++
 }
 
 // DeleteByHashRange 根据一个hash范围进行删除
 // [lhash, rhash) 左闭右开
 func (t *HSkipList) DeleteByHashRange(lhash string, rhash string) int {
-
+	t.lock.Lock()
 	prevs := t.backNodes(lhash)
 	prevs2 := t.backNodes(rhash)
 	node := prevs[0].next[0]
@@ -222,7 +229,7 @@ func (t *HSkipList) DeleteByHashRange(lhash string, rhash string) int {
 	for k := range prevs {
 		prevs[k].next[k] = prevs2[k].next[k]
 	}
-
+	t.lock.Unlock()
 	answer := 0
 	for node != tail {
 		answer++
