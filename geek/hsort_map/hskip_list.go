@@ -26,6 +26,7 @@ type Node struct {
 
 // HSkipList 跳表
 // 通过hash排序的跳表，用于存储k-v对，并且可以根据hash值去删除一个区间
+// todo: 需要保证线程安全
 // 注意：该跳表并不是根据key进行排序的，而是根据key的hash值进行排序的
 type HSkipList struct {
 	head        *Node // 链表头节点
