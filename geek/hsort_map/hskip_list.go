@@ -14,9 +14,6 @@ const (
 	probability float64 = 1 / math.E
 )
 
-// Hash 用于计算key的Hash函数
-type Hash func(string) string
-
 // Node 跳表的一个节点
 type Node struct {
 	next  []*Node

@@ -2,6 +2,7 @@ package cache
 
 import (
 	"container/list"
+	"github.com/Makonike/geek-cache/geek/hsort_map"
 	"sync"
 	"time"
 )
@@ -20,7 +21,7 @@ type Value interface {
 // cache struct
 type lruCache struct {
 	lock      sync.Mutex
-	cacheMap  map[string]*list.Element      // map cache
+	cacheMap  *hsort_map.HSortMap           // map cache
 	expires   map[string]time.Time          // The expiration time of key
 	ll        *list.List                    // linked list
 	OnEvicted func(key string, value Value) // The callback function when a record is deleted

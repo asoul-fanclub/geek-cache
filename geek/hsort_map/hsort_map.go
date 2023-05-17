@@ -11,3 +11,6 @@ type HSortMap interface {
 	Delete(key string) bool
 	DeleteByHashRange(lhash string, rhash string) int
 }
+
+// Hash 用于计算key的Hash函数
+type Hash func(string) string
