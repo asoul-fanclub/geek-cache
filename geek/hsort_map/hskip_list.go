@@ -1,6 +1,7 @@
 package hsort_map
 
 import (
+	"container/list"
 	"math"
 	"math/rand"
 	"strings"
@@ -20,7 +21,7 @@ type Node struct {
 	next  []*Node
 	key   string
 	hash  string
-	value []byte
+	value *list.Element
 }
 
 // HSkipList 跳表
@@ -61,7 +62,7 @@ func (t *HSkipList) Front() *Node {
 	return t.head
 }
 
-func (t *HSkipList) Get(key string) []byte {
+func (t *HSkipList) Get(key string) *list.Element {
 	node := t.get(key)
 	if node != nil {
 		return node.value
@@ -152,7 +153,7 @@ func (t *HSkipList) nextNodes(hash string) []*Node {
 }
 
 // Remove element by the key.
-func (t *HSkipList) Delete(key string) []byte {
+func (t *HSkipList) Delete(key string) *list.Element {
 	// 判断节点是否存在
 	if t.Get(key) == nil {
 		return nil
@@ -161,7 +162,7 @@ func (t *HSkipList) Delete(key string) []byte {
 	hash := t.hash(key)
 	prev := t.backNodes(hash)
 	// 删除节点
-	var answer []byte
+	var answer *list.Element
 	for i, node := range prev {
 		for node != nil && node.next[i] != nil &&
 			strings.Compare(node.next[i].hash, hash) == 0 && strings.Compare(node.next[i].key, key) != 0 {
@@ -182,7 +183,7 @@ func (t *HSkipList) Delete(key string) []byte {
 }
 
 // Put an element into skip list, replace the value if key already exists.
-func (t *HSkipList) Put(key string, value []byte) {
+func (t *HSkipList) Put(key string, value *list.Element) {
 
 	// key已经存在则直接设置为目标值
 	node := t.get(key)
