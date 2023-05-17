@@ -67,18 +67,18 @@ func (t *HSkipList) Front() *Node {
 	return t.head
 }
 
-func (t *HSkipList) Get(key string) *list.Element {
+func (t *HSkipList) Get(key string) (*list.Element, bool) {
 	t.lock.RLock()
-	node := t.get(key)
+	node, b := t.get(key)
 	t.lock.RUnlock()
 	if node != nil {
-		return node.value
+		return node.value, b
 	}
-	return nil
+	return nil, b
 }
 
 // get find value by the key, returns nil if not found.
-func (t *HSkipList) get(key string) *Node {
+func (t *HSkipList) get(key string) (*Node, bool) {
 
 	hkey := t.hash(key)
 
@@ -87,7 +87,7 @@ func (t *HSkipList) get(key string) *Node {
 	var next *Node
 
 	if node == nil {
-		return nil
+		return nil, false
 	}
 
 	// 从最高层一直向后遍历
@@ -104,16 +104,17 @@ func (t *HSkipList) get(key string) *Node {
 	node = node.Next()
 	for node != nil && strings.Compare(node.hash, hkey) <= 0 {
 		if strings.Compare(node.key, key) == 0 {
-			return node
+			return node, true
 		}
 		node = node.Next()
 	}
-	return nil
+	return nil, false
 }
 
 // Exist 判断key是否存在
 func (t *HSkipList) Exist(key string) bool {
-	return t.Get(key) != nil
+	_, answer := t.Get(key)
+	return answer
 }
 
 // backNodes 查找为目标hash值节点的前面的所有节点
@@ -159,12 +160,13 @@ func (t *HSkipList) nextNodes(hash string) []*Node {
 	return nexts
 }
 
-// Remove element by the key.
-func (t *HSkipList) Delete(key string) *list.Element {
+// Delete Remove element by the key.
+func (t *HSkipList) Delete(key string) bool {
 	t.lock.Lock()
 	// 判断节点是否存在
-	if t.Get(key) == nil {
-		return nil
+	_, f := t.get(key)
+	if !f {
+		return false
 	}
 	//寻找key，并记录寻找过程每层经过的最后节点
 	hash := t.hash(key)
@@ -187,14 +189,14 @@ func (t *HSkipList) Delete(key string) *list.Element {
 	if answer != nil {
 		t.Len--
 	}
-	return answer
+	return true
 }
 
 // Put an element into skip list, replace the value if key already exists.
 func (t *HSkipList) Put(key string, value *list.Element) {
 	t.lock.Lock()
 	// key已经存在则直接设置为目标值
-	node := t.get(key)
+	node, _ := t.get(key)
 	if node != nil {
 		node.value = value
 	}

@@ -18,9 +18,13 @@ func TestHSortMap_GetAndPut(t *testing.T) {
 	m.Put("3", &list.Element{Value: []byte("3")})
 
 	a := assert.New(t)
-	a.Equal([]byte("1"), m.Get("1").Value)
-	a.Equal([]byte("2"), m.Get("2").Value)
-	a.Equal([]byte("3"), m.Get("3").Value)
+	v1, b1 := m.Get("1")
+	v2, b2 := m.Get("2")
+	v3, b3 := m.Get("3")
+	a.Equal([]byte("1"), v1.Value)
+	a.Equal([]byte("2"), v2.Value)
+	a.Equal([]byte("3"), v3.Value)
+	a.True(b1 && b2 && b3)
 
 	// 含有相同hash
 	m = NewHSkipList(func(a string) string {
@@ -35,7 +39,9 @@ func TestHSortMap_GetAndPut(t *testing.T) {
 	}
 	for i := 0; i < 100; i++ {
 		s := strconv.Itoa(i)
-		a.Equal([]byte(s), m.Get(s).Value)
+		v, b := m.Get(s)
+		a.Equal([]byte(s), v.Value)
+		a.True(b)
 	}
 
 	// Put相同的值
@@ -44,19 +50,17 @@ func TestHSortMap_GetAndPut(t *testing.T) {
 	m.Put("4", &list.Element{Value: []byte("7")})
 	for i := 0; i < 100; i++ {
 		s := strconv.Itoa(i)
-		if s == "2" {
-			a.Equal([]byte("5"), m.Get(s).Value)
+		if s == "2" || s == "3" || s == "4" {
+			num, _ := strconv.Atoi(s)
+			s2 := strconv.Itoa(num + 3)
+			v, b := m.Get(s)
+			a.Equal([]byte(s2), v.Value)
+			a.True(b)
 			continue
 		}
-		if s == "3" {
-			a.Equal([]byte("6"), m.Get(s).Value)
-			continue
-		}
-		if s == "4" {
-			a.Equal([]byte("7"), m.Get(s).Value)
-			continue
-		}
-		a.Equal([]byte(s), m.Get(s).Value)
+		v, b := m.Get(s)
+		a.Equal([]byte(s), v.Value)
+		a.True(b)
 	}
 }
 
@@ -82,7 +86,9 @@ func TestHSkipList_Delete(t *testing.T) {
 		if i%3 == 0 {
 			a.Nil(m.Get(key))
 		} else {
-			a.Equal(m.Get(key).Value, []byte(key))
+			v, b := m.Get(key)
+			a.Equal(v.Value, []byte(key))
+			a.True(b)
 		}
 	}
 }

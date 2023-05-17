@@ -33,9 +33,9 @@ func (t *GeekMap) Put(key string, value *list.Element) {
 	t.m.Store(key, value)
 }
 
-func (t *GeekMap) Delete(key string) (*list.Element, bool) {
-	v, b := t.m.LoadAndDelete(key)
-	return v.(*list.Element), b
+func (t *GeekMap) Delete(key string) bool {
+	_, b := t.m.LoadAndDelete(key)
+	return b
 }
 
 func (t *GeekMap) DeleteByHashRange(lhash string, rhash string) int {
