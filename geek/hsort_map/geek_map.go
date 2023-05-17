@@ -6,13 +6,13 @@ import (
 	"sync"
 )
 
+// NewGeekMap 底层通过sync.map来实现
+// 推荐理由：1. 并发安全 2. map实现读写都是o(1) 3. 实现简单
+// 不推荐理由：1. 删除一个区间的时候会遍历一遍map
 type GeekMap struct {
 	m sync.Map
 }
 
-// NewGeekMap 底层通过sync.map来实现
-// 推荐理由：1. 并发安全 2. map实现读写都是o(1)
-// 不推荐理由：1. 删除一个区间的时候会遍历一遍map
 func NewGeekMap(hash Hash) *GeekMap {
 	return &GeekMap{
 		m: sync.Map{},
