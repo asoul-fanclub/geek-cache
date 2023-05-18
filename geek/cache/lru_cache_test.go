@@ -11,7 +11,7 @@ import (
 // 检测并发情况下是否会出现问题
 func TestCache_GetAndAdd(t *testing.T) {
 	var wg sync.WaitGroup
-	cache := NewLRUCache(1000000000)
+	cache := NewLRUCache(LRUCacheSize(1000000000))
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
@@ -38,7 +38,7 @@ func TestCache_GetAndAdd(t *testing.T) {
 func TestCache_FreeMemory(t *testing.T) {
 	a := assert.New(t)
 	// 测试LRU
-	cache := NewLRUCache(90)
+	cache := NewLRUCache(LRUCacheSize(90))
 	for i := 0; i < 10; i++ {
 		cache.Add(strconv.Itoa(i), &testValue{"123456789"})
 	}
@@ -65,7 +65,7 @@ func TestCache_FreeMemory2(t *testing.T) {
 	timeout := time.Now().Add(3 * time.Second)
 	a := assert.New(t)
 	// 测试LRU
-	cache := NewLRUCache(90)
+	cache := NewLRUCache(LRUCacheSize(90))
 	for i := 0; i < 10; i++ {
 		cache.AddWithExpiration(strconv.Itoa(i), &testValue{"123456789"}, timeout)
 	}
@@ -90,7 +90,7 @@ func TestCache_FreeMemory2(t *testing.T) {
 // 测试超时
 func TestCache_AddWithExpiration(t *testing.T) {
 	a := assert.New(t)
-	cache := NewLRUCache(100)
+	cache := NewLRUCache(LRUCacheSize(100))
 	cache.AddWithExpiration("1", &testValue{"123456789"}, time.Now().Add(3*time.Second))
 	time.Sleep(2 * time.Second)
 	v1, _ := cache.Get("1")
@@ -103,7 +103,7 @@ func TestCache_AddWithExpiration(t *testing.T) {
 // 测试删除
 func TestCache_Delete(t *testing.T) {
 	a := assert.New(t)
-	cache := NewLRUCache(100)
+	cache := NewLRUCache(LRUCacheSize(100))
 	cache.Add("1", &testValue{"123456789"})
 	cache.Add("2", &testValue{"123456789"})
 	_, f1 := cache.Get("1")

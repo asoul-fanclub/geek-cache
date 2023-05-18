@@ -19,7 +19,7 @@ func (cache *cache) lruCacheLazyLoadIfNeed() {
 		cache.lock.Lock()
 		defer cache.lock.Unlock()
 		if cache.lruCache == nil {
-			cache.lruCache = c.NewLRUCache(cache.cacheBytes)
+			cache.lruCache = c.NewLRUCache(c.LRUCacheSize(cache.cacheBytes))
 		}
 	}
 }
