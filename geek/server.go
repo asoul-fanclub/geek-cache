@@ -3,11 +3,12 @@ package geek
 import (
 	"context"
 	"fmt"
-	"github.com/Makonike/geek-cache/geek/utils"
 	"log"
 	"net"
 	"strings"
 	"sync"
+
+	"github.com/Makonike/geek-cache/geek/utils"
 
 	pb "github.com/Makonike/geek-cache/geek/pb"
 	registy "github.com/Makonike/geek-cache/geek/registry"
